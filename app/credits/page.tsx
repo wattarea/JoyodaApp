@@ -1,4 +1,5 @@
 // app/credits/page.tsx
+export const dynamic = 'force-dynamic'
 
 import { createClient } from "@/lib/supabase/server"; // Sunucu istemcisi
 import { redirect } from "next/navigation";
