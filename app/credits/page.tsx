@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CreditsPageClient } from "./credits-client"; // İstemci bileşenini import ediyoruz
 
+export const dynamic = 'force-dynamic'
+
+
 // Bu fonksiyon sunucuda çalışır. 'use client' direktifi yok!
 export default async function CreditsPage() {
   const supabase = createClient();
