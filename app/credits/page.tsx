@@ -24,7 +24,7 @@ export default async function CreditsPage() {
 
   return <CreditsPageClient user={user} initialCredits={userData?.credits || 0} />
 }
-;("use client")
+"use client";
 
 import { useState } from "react"
 
