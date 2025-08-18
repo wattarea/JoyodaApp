@@ -69,7 +69,7 @@ export default function PricingPage() {
       monthlyPrice: 14.9,
       yearlyPrice: 149,
       description: "For professionals and creators",
-      credits: 1000,
+      credits: 500,
       popular: true,
       features: [
         "500 credits per month",
@@ -88,7 +88,7 @@ export default function PricingPage() {
       monthlyPrice: 24.9,
       yearlyPrice: 249,
       description: "For teams and businesses",
-      credits: 5000,
+      credits: 1000,
       popular: false,
       features: [
         "1,000 credits per month",
