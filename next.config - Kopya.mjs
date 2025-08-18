@@ -23,7 +23,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               // --- SON VE KESİN DEĞİŞİKLİK BU SATIRDA ---
               "img-src 'self' data: blob: https://*.vercel.com https://vercel.com https://blob.vercel-storage.com https://*.supabase.co https://*.fal.ai https://*.fal.media",
-              "connect-src 'self' https://*.vercel.com https://vercel.com https://blob.vercel-storage.com https://*.supabase.co https://supabase.co wss://*.supabase.co https://*.fal.ai https://*.fal.media https://api.fal.ai https://queue.fal.run https://cdn-api.ethyca.com https://files-vercel.us.files.ethyca.com https://identity.io.app",
+              "connect-src 'self' https://*.vercel.com https://vercel.com https://stripe.com https://*.stripe.comhttps://blob.vercel-storage.com https://*.supabase.co https://supabase.co wss://*.supabase.co https://*.fal.ai https://*.fal.media https://api.fal.ai https://queue.fal.run https://cdn-api.ethyca.com https://files-vercel.us.files.ethyca.com https://identity.io.app",
               "frame-src 'self' https://vercel.live https://*.vercel.com",
               "worker-src 'self' blob:",
               "child-src 'self' blob:",

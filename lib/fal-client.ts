@@ -1,9 +1,13 @@
 import * as fal from "@fal-ai/serverless-client"
 
 // Configure fal client
-fal.config({
-  credentials: process.env.FAL_KEY,
-})
+if (process.env.FAL_KEY && process.env.FAL_KEY !== "fal_placeholder_key_replace_with_real_key") {
+  fal.config({
+    credentials: process.env.FAL_KEY,
+  })
+} else {
+  console.warn("[v0] FAL_KEY not properly configured - fal.ai features will not work")
+}
 
 export interface FalImageResult {
   url: string
@@ -140,25 +144,88 @@ export async function enhanceFace(imageUrl: string) {
 // Style transfer
 export async function transferStyle(imageUrl: string, stylePrompt?: string, additionalSettings?: any) {
   try {
-    console.log("Plushie style transfer input:", { imageUrl, additionalSettings })
+    console.log("[v0] Plushie style transfer input:", { imageUrl, stylePrompt, additionalSettings })
 
-    const result = (await fal.subscribe("fal-ai/image-editing/plushie-style", {
-      input: {
-        image_url: imageUrl,
-        // Additional settings can be passed here
-        ...additionalSettings,
-      },
-    })) as FalResponse
+    if (!imageUrl) {
+      throw new Error("Image URL is required for style transfer")
+    }
 
-    console.log("Plushie style transfer result:", result)
+    if (
+      !process.env.FAL_KEY ||
+      process.env.FAL_KEY === "fal_placeholder_key_replace_with_real_key" ||
+      process.env.FAL_KEY === ""
+    ) {
+      throw new Error(
+        "FAL_KEY environment variable is not configured. Please add your real fal.ai API key from https://fal.ai/dashboard/keys",
+      )
+    }
+
+    console.log("[v0] Making API call to fal-ai/image-editing/plushie-style")
+
+    let result: any
+    try {
+      result = await fal.subscribe("fal-ai/image-editing/plushie-style", {
+        input: {
+          image_url: imageUrl,
+          // Additional settings can be passed here
+          ...additionalSettings,
+        },
+      })
+    } catch (falError: any) {
+      console.error("[v0] FAL API Error Details:", {
+        error: falError,
+        message: falError?.message,
+        response: falError?.response?.data,
+        body: falError?.body,
+        status: falError?.status || falError?.response?.status,
+      })
+
+      let errorMessage = "Failed to transfer to plushie style"
+
+      if (falError?.response?.data?.detail) {
+        errorMessage = Array.isArray(falError.response.data.detail)
+          ? falError.response.data.detail.map((d: any) => `${d.loc?.join(".")} - ${d.msg}`).join("; ")
+          : falError.response.data.detail
+      } else if (falError?.response?.data?.message) {
+        errorMessage = falError.response.data.message
+      } else if (falError?.body?.detail) {
+        errorMessage = Array.isArray(falError.body.detail)
+          ? falError.body.detail.map((d: any) => `${d.loc?.join(".")} - ${d.msg}`).join("; ")
+          : falError.body.detail
+      } else if (falError?.message) {
+        errorMessage = falError.message
+      } else if (falError?.status === 404) {
+        errorMessage = "Plushie style transfer endpoint not found - the API endpoint may have changed"
+      } else if (falError?.status === 401 || falError?.status === 403) {
+        errorMessage = "Authentication failed - please check your FAL_KEY configuration"
+      }
+
+      throw new Error(errorMessage)
+    }
+
+    console.log("[v0] Plushie style transfer result:", result)
+
+    if (!result) {
+      throw new Error("No response received from plushie style transfer API")
+    }
+
+    if (!result.images || !Array.isArray(result.images) || result.images.length === 0) {
+      console.error("[v0] Invalid API response structure:", result)
+      throw new Error("Invalid API response - no images found in result")
+    }
+
+    if (!result.images[0]?.url) {
+      console.error("[v0] No image URL in response:", result.images[0])
+      throw new Error("No processed image URL returned from the API")
+    }
 
     return {
       success: true,
       data: result,
-      imageUrl: result.images?.[0]?.url,
+      imageUrl: result.images[0].url,
     }
   } catch (error) {
-    console.error("Error transferring to plushie style:", error)
+    console.error("[v0] Error transferring to plushie style:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to transfer to plushie style",

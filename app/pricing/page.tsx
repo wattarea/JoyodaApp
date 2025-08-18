@@ -13,6 +13,8 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [userCredits, setUserCredits] = useState(0)
+  const [isLoading, setIsLoading] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -161,47 +163,127 @@ export default function PricingPage() {
   ]
 
   const handleSubscriptionPurchase = async (planId: string, isYearly: boolean) => {
-    try {
-      const response = await fetch("/api/stripe/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "subscription",
-          planId,
-          isYearly,
-        }),
-      })
+    if (isLoading) return
 
-      const { url } = await response.json()
-      if (url) {
-        window.location.href = url
+    setIsLoading(`subscription-${planId}`)
+    setError(null)
+
+    const attemptPurchase = async (retryCount = 0): Promise<void> => {
+      try {
+        console.log("[v0] Creating subscription checkout, attempt:", retryCount + 1)
+
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+        const response = await fetch("/api/stripe/create-checkout-session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "subscription",
+            planId,
+            isYearly,
+          }),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log("[v0] Checkout session created successfully")
+
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error("No checkout URL received")
+        }
+      } catch (error) {
+        console.error("[v0] Error creating subscription checkout:", error)
+
+        if (retryCount < 2 && (error instanceof TypeError || error.name === "AbortError")) {
+          console.log("[v0] Retrying subscription checkout due to network interference")
+          setTimeout(() => attemptPurchase(retryCount + 1), 1000 * (retryCount + 1))
+          return
+        }
+
+        setError("Unable to process payment. Please try again or contact support.")
+        throw error
       }
+    }
+
+    try {
+      await attemptPurchase()
     } catch (error) {
-      console.error("Error creating checkout session:", error)
+      // Final error handling
+    } finally {
+      setIsLoading(null)
     }
   }
 
   const handleCreditPurchase = async (packageId: string) => {
-    try {
-      const response = await fetch("/api/stripe/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "credits",
-          packageId,
-        }),
-      })
+    if (isLoading) return
 
-      const { url } = await response.json()
-      if (url) {
-        window.location.href = url
+    setIsLoading(`credits-${packageId}`)
+    setError(null)
+
+    const attemptPurchase = async (retryCount = 0): Promise<void> => {
+      try {
+        console.log("[v0] Creating credit checkout, attempt:", retryCount + 1)
+
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+        const response = await fetch("/api/stripe/create-checkout-session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "credits",
+            packageId,
+          }),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log("[v0] Credit checkout session created successfully")
+
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error("No checkout URL received")
+        }
+      } catch (error) {
+        console.error("[v0] Error creating credit checkout:", error)
+
+        if (retryCount < 2 && (error instanceof TypeError || error.name === "AbortError")) {
+          console.log("[v0] Retrying credit checkout due to network interference")
+          setTimeout(() => attemptPurchase(retryCount + 1), 1000 * (retryCount + 1))
+          return
+        }
+
+        setError("Unable to process payment. Please try again or contact support.")
+        throw error
       }
+    }
+
+    try {
+      await attemptPurchase()
     } catch (error) {
-      console.error("Error creating checkout session:", error)
+      // Final error handling
+    } finally {
+      setIsLoading(null)
     }
   }
 
@@ -210,6 +292,15 @@ export default function PricingPage() {
       <UnifiedHeader />
 
       <div className="container mx-auto px-4 py-16">
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
+            {error}
+            <button onClick={() => setError(null)} className="ml-4 text-red-500 hover:text-red-700 underline">
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Page Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
@@ -287,13 +378,14 @@ export default function PricingPage() {
                 <CardContent className="space-y-6 pt-4">
                   <Button
                     onClick={() => handleSubscriptionPurchase(plan.id, isYearly)}
+                    disabled={isLoading !== null}
                     className={`w-full h-12 text-lg font-semibold ${
                       plan.popular
                         ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         : "bg-gray-900 hover:bg-gray-800 text-white"
                     }`}
                   >
-                    Get Started
+                    {isLoading === `subscription-${plan.id}` ? "Processing..." : "Get Started"}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
 
@@ -362,13 +454,14 @@ export default function PricingPage() {
                 <CardContent className="pt-0 pb-6">
                   <Button
                     onClick={() => handleCreditPurchase(pkg.id)}
+                    disabled={isLoading !== null}
                     className={`w-full h-10 font-semibold ${
                       pkg.popular
                         ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         : "bg-gray-900 hover:bg-gray-800 text-white"
                     }`}
                   >
-                    Purchase Credits
+                    {isLoading === `credits-${pkg.id}` ? "Processing..." : "Purchase Credits"}
                     <CreditCard className="w-4 h-4 ml-2" />
                   </Button>
                 </CardContent>

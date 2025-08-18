@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { CreditCard } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 
 interface RealTimeCreditsProps {
   initialCredits: number
@@ -20,57 +19,59 @@ export function RealTimeCredits({
   onCreditsChange,
 }: RealTimeCreditsProps) {
   const [credits, setCredits] = useState(initialCredits)
-  const supabase = createClient()
 
   useEffect(() => {
-    const fetchCredits = async () => {
+    const fetchCredits = async (retryCount = 0) => {
       try {
-        const { data, error } = await supabase.from("users").select("credits").eq("email", userEmail)
+        console.log("[v0] Fetching credits, attempt:", retryCount + 1)
 
-        if (error) {
-          console.error("Error fetching credits:", error)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
+        const response = await fetch("/api/credits", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+          cache: "no-cache",
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log("[v0] Credits fetched successfully:", data.credits)
+
+        if (typeof data.credits === "number") {
+          setCredits(data.credits)
+          onCreditsChange?.(data.credits)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching credits:", error)
+
+        if (retryCount < 2 && (error instanceof TypeError || error.name === "AbortError")) {
+          console.log("[v0] Retrying credits fetch due to browser extension interference")
+          setTimeout(() => fetchCredits(retryCount + 1), 1000 * (retryCount + 1))
           return
         }
 
-        if (data && data.length > 0 && typeof data[0].credits === "number") {
-          setCredits(data[0].credits)
-          onCreditsChange?.(data[0].credits)
-        } else if (data && data.length === 0) {
-          console.warn("No user found with email:", userEmail)
-        }
-      } catch (error) {
-        console.error("Failed to fetch credits:", error)
+        console.log("[v0] Using initial credits as fallback:", initialCredits)
+        setCredits(initialCredits)
       }
     }
 
     fetchCredits()
 
-    const interval = setInterval(fetchCredits, 2000)
-
-    const channel = supabase
-      .channel("credits-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "users",
-          filter: `email=eq.${userEmail}`,
-        },
-        (payload) => {
-          if (payload.new && typeof payload.new.credits === "number") {
-            setCredits(payload.new.credits)
-            onCreditsChange?.(payload.new.credits)
-          }
-        },
-      )
-      .subscribe()
+    const interval = setInterval(() => fetchCredits(), 5000)
 
     return () => {
       clearInterval(interval)
-      supabase.removeChannel(channel)
     }
-  }, [userEmail, supabase, onCreditsChange])
+  }, [userEmail, onCreditsChange, initialCredits])
 
   return (
     <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">

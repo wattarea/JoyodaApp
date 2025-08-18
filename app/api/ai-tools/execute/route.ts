@@ -89,7 +89,9 @@ export async function POST(request: NextRequest) {
         result = await enhanceFace(parameters.imageUrl)
         break
       case "fal-ai/image-editing/plushie-style":
+        console.log("[v0] Executing plushie style transfer with parameters:", parameters)
         result = await transferStyle(parameters.imageUrl, parameters.stylePrompt, parameters.additionalSettings)
+        console.log("[v0] Style transfer result:", { success: result.success, error: result.error })
         break
       case "fal-ai/fashn/tryon/v1.5":
         result = await virtualTryOn(parameters.personImageUrl, parameters.garmentImageUrl, parameters.garmentType)
