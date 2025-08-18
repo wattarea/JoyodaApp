@@ -432,7 +432,7 @@ export default async function LandingPage() {
                   <div className="text-left space-y-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">1000 credits per month</span>
+                      <span className="text-sm">500 credits per month</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
@@ -467,7 +467,7 @@ export default async function LandingPage() {
                   <div className="text-left space-y-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">5000 credits per month</span>
+                      <span className="text-sm">1000 credits per month</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
