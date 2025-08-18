@@ -161,15 +161,48 @@ export default function PricingPage() {
   ]
 
   const handleSubscriptionPurchase = async (planId: string, isYearly: boolean) => {
-    // TODO: Implement Stripe subscription checkout
-    console.log(`Purchasing ${planId} subscription (${isYearly ? "yearly" : "monthly"})`)
-    // This will redirect to Stripe Checkout when implemented
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "subscription",
+          planId,
+          isYearly,
+        }),
+      })
+
+      const { url } = await response.json()
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error)
+    }
   }
 
   const handleCreditPurchase = async (packageId: string) => {
-    // TODO: Implement Stripe one-time payment checkout
-    console.log(`Purchasing ${packageId} credit package`)
-    // This will redirect to Stripe Checkout when implemented
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "credits",
+          packageId,
+        }),
+      })
+
+      const { url } = await response.json()
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error)
+    }
   }
 
   return (

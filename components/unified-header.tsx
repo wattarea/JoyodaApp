@@ -15,9 +15,12 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
   const [user, setUser] = useState<any>(null)
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
+    setMounted(true)
+
     async function getUser() {
       try {
         const {
@@ -52,11 +55,34 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
     return () => subscription.unsubscribe()
   }, [supabase])
 
+  if (!mounted) {
+    return (
+      <header className="bg-white border-b sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-black text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Joyoda
+            </span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-6">
+            <div className="w-20 h-6 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-16 h-6 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-14 h-6 bg-gray-200 animate-pulse rounded"></div>
+          </nav>
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+            <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
+          </div>
+        </div>
+      </header>
+    )
+  }
+
   const isAuthenticated = !!user
 
   return (
     <header className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between" suppressHydrationWarning>
         {/* Logo */}
         <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2">
           <span className="font-black text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">

@@ -44,14 +44,14 @@ export default function SignInForm() {
   }, [state, router])
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="bg-white rounded-2xl shadow-xl p-8" suppressHydrationWarning={true}>
       <form action={formAction} className="space-y-6">
         {state?.error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{state.error}</div>
         )}
 
-        <div className="space-y-4">
-          <div>
+        <div className="space-y-4" suppressHydrationWarning={true}>
+          <div suppressHydrationWarning={true}>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
@@ -65,11 +65,11 @@ export default function SignInForm() {
             />
           </div>
 
-          <div>
+          <div suppressHydrationWarning={true}>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
-            <div className="relative">
+            <div className="relative" suppressHydrationWarning={true}>
               <Input
                 id="password"
                 name="password"
@@ -89,7 +89,7 @@ export default function SignInForm() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" suppressHydrationWarning={true}>
           <Link href="/forgot-password" className="text-sm text-purple-600 hover:text-purple-700 hover:underline">
             Forgot password?
           </Link>
@@ -97,14 +97,14 @@ export default function SignInForm() {
 
         <SubmitButton />
 
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-sm text-gray-600" suppressHydrationWarning={true}>
           Don't have an account?{" "}
           <Link href="/signup" className="text-purple-600 hover:text-purple-700 font-medium hover:underline">
             Sign up
           </Link>
         </div>
 
-        <div className="text-center text-xs text-gray-500 mt-6">
+        <div className="text-center text-xs text-gray-500 mt-6" suppressHydrationWarning={true}>
           By signing in you agree to our{" "}
           <Link href="/terms" className="text-purple-600 hover:underline">
             Terms of Service

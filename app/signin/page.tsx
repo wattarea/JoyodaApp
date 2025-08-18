@@ -23,13 +23,13 @@ export default async function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white" suppressHydrationWarning>
       {/* Unified Header */}
       <UnifiedHeader />
 
       {/* Sign In Form */}
-      <div className="flex items-center justify-center p-4 pt-20">
-        <div className="w-full max-w-md">
+      <div className="flex items-center justify-center p-4 pt-20" suppressHydrationWarning>
+        <div className="w-full max-w-md" suppressHydrationWarning>
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="font-black text-xl text-white">J</span>
