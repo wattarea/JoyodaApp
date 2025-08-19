@@ -70,7 +70,7 @@ export async function signUp(prevState: any, formData: FormData) {
         email: email.toString(),
         first_name: firstName.toString(),
         last_name: lastName.toString(),
-        credits: 10, // Default credits
+        credits: 5, // Default credits
         subscription_plan: "free", // Default plan
         email_verified: false, // Will be updated when email is verified
         password_hash: "managed_by_supabase_auth", // Placeholder since auth is handled by Supabase

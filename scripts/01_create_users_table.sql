@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     company VARCHAR(255),
-    credits INTEGER DEFAULT 10,
+    credits INTEGER DEFAULT 5,
     subscription_plan VARCHAR(50) DEFAULT 'free',
     email_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
