@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       // Subscription plans
       const subscriptionPlans = {
         basic: { name: "Basic", monthlyPrice: 5.9, yearlyPrice: 49, credits: 100 },
-        pro: { name: "Pro", monthlyPrice: 14.9, yearlyPrice: 149, credits: 500 },
-        enterprise: { name: "Enterprise", monthlyPrice: 24.9, yearlyPrice: 249, credits: 1000 },
+        pro: { name: "Pro", monthlyPrice: 14.9, yearlyPrice: 149, credits: 1000 },
+        enterprise: { name: "Enterprise", monthlyPrice: 24.9, yearlyPrice: 249, credits: 5000 },
       }
 
       const plan = subscriptionPlans[planId as keyof typeof subscriptionPlans]

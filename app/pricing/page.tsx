@@ -72,7 +72,7 @@ export default function PricingPage() {
       credits: 500,
       popular: true,
       features: [
-        "500 credits per month",
+        "1,000 credits per month",
         "All AI tools access",
         "Premium quality results",
         "Priority support",
@@ -91,7 +91,7 @@ export default function PricingPage() {
       credits: 1000,
       popular: false,
       features: [
-        "1,000 credits per month",
+        "5,000 credits per month",
         "All AI tools access",
         "Premium quality results",
         "24/7 dedicated support",

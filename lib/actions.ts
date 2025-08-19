@@ -43,25 +43,42 @@ export async function signUp(prevState: any, formData: FormData) {
 
   const email = formData.get("email")
   const password = formData.get("password")
+  const firstName = formData.get("firstName")
+  const lastName = formData.get("lastName")
 
-  if (!email || !password) {
-    return { error: "Email and password are required" }
+  if (!email || !password || !firstName || !lastName) {
+    return { error: "Email, password, first name, and last name are required" }
   }
 
   const supabase = await createClient()
 
   try {
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.toString(),
       password: password.toString(),
       options: {
-        emailRedirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
       },
     })
 
-    if (error) {
-      return { error: error.message }
+    if (authError) {
+      return { error: authError.message }
+    }
+
+    if (authData.user) {
+      const { error: dbError } = await supabase.from("users").insert({
+        email: email.toString(),
+        first_name: firstName.toString(),
+        last_name: lastName.toString(),
+        credits: 10, // Default credits
+        subscription_plan: "free", // Default plan
+        email_verified: false, // Will be updated when email is verified
+        password_hash: "managed_by_supabase_auth", // Placeholder since auth is handled by Supabase
+      })
+
+      if (dbError) {
+        console.error("Error creating user record:", dbError)
+      }
     }
 
     return {
@@ -171,7 +188,6 @@ export async function updateNotifications(prevState: any, formData: FormData) {
   const supabase = await createClient()
 
   try {
-    // Check if preferences exist
     const { data: existing } = await supabase
       .from("user_preferences")
       .select("id")
@@ -179,7 +195,6 @@ export async function updateNotifications(prevState: any, formData: FormData) {
       .single()
 
     if (existing) {
-      // Update existing preferences
       const { error } = await supabase
         .from("user_preferences")
         .update({
@@ -194,7 +209,6 @@ export async function updateNotifications(prevState: any, formData: FormData) {
         return { error: error.message }
       }
     } else {
-      // Create new preferences
       const { error } = await supabase.from("user_preferences").insert({
         user_id: Number.parseInt(userId.toString()),
         email_notifications: emailNotifications,
@@ -239,7 +253,6 @@ export async function updatePassword(prevState: any, formData: FormData) {
   const supabase = await createClient()
 
   try {
-    // First verify current password by attempting to sign in
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -248,7 +261,6 @@ export async function updatePassword(prevState: any, formData: FormData) {
       return { error: "User not authenticated" }
     }
 
-    // Verify current password
     const { error: verifyError } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: currentPassword.toString(),
@@ -258,7 +270,6 @@ export async function updatePassword(prevState: any, formData: FormData) {
       return { error: "Current password is incorrect" }
     }
 
-    // Update password
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword.toString(),
     })
@@ -271,5 +282,58 @@ export async function updatePassword(prevState: any, formData: FormData) {
   } catch (error) {
     console.error("Password update error:", error)
     return { error: "An unexpected error occurred. Please try again." }
+  }
+}
+
+export async function signInWithGoogle() {
+  const supabase = await createClient()
+
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { data }
+  } catch (error) {
+    console.error("Google sign in error:", error)
+    return { error: "An unexpected error occurred. Please try again." }
+  }
+}
+
+export async function handleGoogleUser(user: any) {
+  const supabase = await createClient()
+
+  try {
+    // Check if user already exists in our users table
+    const { data: existingUser } = await supabase.from("users").select("id").eq("email", user.email).single()
+
+    if (!existingUser) {
+      // Create user record if it doesn't exist
+      const { error: dbError } = await supabase.from("users").insert({
+        email: user.email,
+        first_name: user.user_metadata?.full_name?.split(" ")[0] || user.user_metadata?.name?.split(" ")[0] || "",
+        last_name:
+          user.user_metadata?.full_name?.split(" ").slice(1).join(" ") ||
+          user.user_metadata?.name?.split(" ").slice(1).join(" ") ||
+          "",
+        credits: 10, // Default credits
+        subscription_plan: "free", // Default plan
+        email_verified: true, // Google users are pre-verified
+        password_hash: "managed_by_supabase_auth", // Placeholder since auth is handled by Supabase
+      })
+
+      if (dbError) {
+        console.error("Error creating Google user record:", dbError)
+      }
+    }
+  } catch (error) {
+    console.error("Handle Google user error:", error)
   }
 }

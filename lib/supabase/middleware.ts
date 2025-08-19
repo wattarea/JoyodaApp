@@ -25,14 +25,6 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get("code")
-
-  if (code) {
-    await supabase.auth.exchangeCodeForSession(code)
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
