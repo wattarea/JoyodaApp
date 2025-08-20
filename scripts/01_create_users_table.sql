@@ -19,10 +19,3 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 -- Create index on subscription_plan for analytics
 CREATE INDEX IF NOT EXISTS idx_users_subscription ON users(subscription_plan);
 
--- Insert sample user data
-INSERT INTO users (email, password_hash, first_name, last_name, credits, subscription_plan, email_verified) 
-VALUES 
-    ('john.doe@example.com', '$2b$10$example_hash_here', 'John', 'Doe', 10, 'free', TRUE),
-    ('jane.smith@example.com', '$2b$10$example_hash_here', 'Jane', 'Smith', 150, 'professional', TRUE),
-    ('admin@example.com', '$2b$10$example_hash_here', 'Admin', 'User', 500, 'enterprise', TRUE)
-ON CONFLICT (email) DO NOTHING;
