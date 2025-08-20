@@ -5,9 +5,6 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
-middleware - Kopya.ts
-next.config - Kopya.mjs
-
 
 # testing
 /coverage

@@ -323,7 +323,7 @@ export async function handleGoogleUser(user: any) {
           user.user_metadata?.full_name?.split(" ").slice(1).join(" ") ||
           user.user_metadata?.name?.split(" ").slice(1).join(" ") ||
           "",
-        credits: 10, // Default credits
+        credits: 5, // Default credits
         subscription_plan: "free", // Default plan
         email_verified: true, // Google users are pre-verified
         password_hash: "managed_by_supabase_auth", // Placeholder since auth is handled by Supabase
