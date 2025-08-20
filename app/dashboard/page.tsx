@@ -99,7 +99,7 @@ export default async function DashboardPage() {
           email: user.email,
           first_name: user.user_metadata?.first_name || "User",
           last_name: user.user_metadata?.last_name || "",
-          credits: 10,
+          credits: 5,
           subscription_plan: "free",
           password_hash: "supabase_auth",
         })
