@@ -19,8 +19,15 @@ export function RealTimeCredits({
   onCreditsChange,
 }: RealTimeCreditsProps) {
   const [credits, setCredits] = useState(initialCredits)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const fetchCredits = async (retryCount = 0) => {
       try {
         console.log("[v0] Fetching credits, attempt:", retryCount + 1)
@@ -71,7 +78,19 @@ export function RealTimeCredits({
     return () => {
       clearInterval(interval)
     }
-  }, [userEmail, onCreditsChange, initialCredits])
+  }, [userEmail, onCreditsChange, initialCredits, mounted])
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
+        {showIcon && <CreditCard className="w-4 h-4 text-purple-600" />}
+        <span className="text-purple-600 font-medium">
+          {initialCredits}
+          {showText ? " Credits" : ""}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">

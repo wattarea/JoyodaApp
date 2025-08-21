@@ -82,7 +82,7 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
 
   return (
     <header className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between" suppressHydrationWarning>
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2">
           <span className="font-black text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">

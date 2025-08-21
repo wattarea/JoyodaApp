@@ -1,43 +1,38 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Users, ImageIcon, Clock, CheckCircle, Scissors, Sparkles, Video, Palette } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
+import { useState, useEffect } from "react"
 
-export default async function LandingPage() {
-  let tools: any[] = []
+export default function LandingPage() {
+  const [tools, setTools] = useState<any[]>([])
 
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("ai_tools")
-      .select("*")
-      .eq("is_active", true)
-      .order("usage_count", { ascending: false })
-      .limit(8)
+  useEffect(() => {
+    async function fetchTools() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("ai_tools")
+          .select("*")
+          .eq("is_active", true)
+          .order("usage_count", { ascending: false })
+          .limit(8)
 
-    if (data && !error) {
-      tools = data
+        if (data && !error) {
+          setTools(data)
+        }
+      } catch (error) {
+        // Use fallback tools if database is not available
+        console.log("Database not available, using fallback tools")
+      }
     }
-  } catch (error) {
-    // Use fallback tools if database is not available
-    console.log("Database not available, using fallback tools")
-  }
 
-  const iconMap: Record<string, any> = {
-    "background-remover": Scissors,
-    "face-enhancer": Sparkles,
-    "image-upscaler": ImageIcon,
-    "style-transfer": Palette,
-    "text-to-image": ImageIcon,
-    imagen4: ImageIcon,
-    "face-swap": Users,
-    "virtual-try-on": Users,
-    "age-progression": Clock,
-    "text-to-video-kling": Video,
-    "text-to-video-hailuo": Video,
-  }
+    fetchTools()
+  }, [])
 
   const fallbackTools = [
     {
@@ -105,6 +100,20 @@ export default async function LandingPage() {
       category: "Creative",
     },
   ]
+
+  const iconMap: Record<string, any> = {
+    "background-remover": Scissors,
+    "face-enhancer": Sparkles,
+    "image-upscaler": ImageIcon,
+    "style-transfer": Palette,
+    "text-to-image": ImageIcon,
+    imagen4: ImageIcon,
+    "face-swap": Users,
+    "virtual-try-on": Users,
+    "age-progression": Clock,
+    "text-to-video-kling": Video,
+    "text-to-video-hailuo": Video,
+  }
 
   const displayTools = tools.length > 0 ? tools : fallbackTools
 
