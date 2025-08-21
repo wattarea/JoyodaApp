@@ -119,15 +119,15 @@ export default async function LandingPage() {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="#features" className="text-gray-600 hover:text-purple-600 transition-colors">
+            <a href="#features" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
               Features
-            </Link>
-            <Link href="#pricing" className="text-gray-600 hover:text-purple-600 transition-colors">
+            </a>
+            <a href="#pricing" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
               Pricing
-            </Link>
-            <Link href="#tools" className="text-gray-600 hover:text-purple-600 transition-colors">
+            </a>
+            <a href="#tools" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
               Tools
-            </Link>
+            </a>
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/signin">
@@ -209,7 +209,7 @@ export default async function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features tools" className="py-20 px-4">
+      <section id="features" className="py-20 px-4 scroll-mt-20">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Everything you need to edit images like a pro</h2>
@@ -218,40 +218,50 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {displayTools.slice(0, 8).map((tool) => {
-              const IconComponent = iconMap[tool.tool_id] || ImageIcon
-              return (
-                <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
-                  <Card className="p-6 hover:shadow-lg transition-shadow border-purple-100 cursor-pointer">
-                    <CardContent className="p-0">
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
-                        {tool.image_url ? (
-                          <img
-                            src={tool.image_url || "/placeholder.svg"}
-                            alt={tool.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to icon if image fails to load
-                              const target = e.target as HTMLImageElement
-                              target.style.display = "none"
-                              target.nextElementSibling?.classList.remove("hidden")
-                            }}
-                          />
-                        ) : null}
-                        <IconComponent className={`w-6 h-6 text-purple-600 ${tool.image_url ? "hidden" : ""}`} />
-                      </div>
-                      <h3 className="font-semibold mb-2">{tool.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-purple-600 font-medium">{tool.credits_per_use} credits</span>
-                        <span className="text-gray-500">{tool.category}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )
-            })}
+          <div id="tools" className="scroll-mt-20">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {displayTools.slice(0, 8).map((tool) => {
+                const IconComponent = iconMap[tool.tool_id] || ImageIcon
+                return (
+                  <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
+                    <Card className="hover:shadow-lg transition-shadow border-purple-100 cursor-pointer overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="relative h-32 bg-gradient-to-br from-purple-500 to-pink-500 overflow-hidden">
+                          {tool.image_url ? (
+                            <img
+                              src={tool.image_url || "/placeholder.svg"}
+                              alt={tool.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                                target.nextElementSibling?.classList.remove("hidden")
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`absolute inset-0 flex items-center justify-center ${tool.image_url ? "hidden" : ""}`}
+                          >
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                              <IconComponent className="w-8 h-8 text-white" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6">
+                          <h3 className="font-semibold mb-2">{tool.name}</h3>
+                          <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-purple-600 font-medium">{tool.credits_per_use} credits</span>
+                            <span className="text-gray-500">{tool.category}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
 
           <div className="text-center mt-12">
@@ -391,7 +401,7 @@ export default async function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      <section id="pricing" className="py-20 bg-gray-50 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Choose the perfect plan for you</h2>

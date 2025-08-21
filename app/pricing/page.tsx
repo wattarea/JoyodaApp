@@ -5,9 +5,44 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { CheckCircle, CreditCard, Zap, Users, Building, Star, ArrowRight, Crown } from "lucide-react"
+import {
+  CheckCircle,
+  CreditCard,
+  Zap,
+  Users,
+  Building,
+  Star,
+  ArrowRight,
+  Crown,
+  Scissors,
+  TrendingUp,
+  Palette,
+  RefreshCw,
+  ImageIcon,
+  Shirt,
+  Heart,
+} from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { UnifiedHeader } from "@/components/unified-header"
+import Link from "next/link"
+
+const iconMap: Record<string, any> = {
+  "background-remover": Scissors,
+  "face-enhancer": TrendingUp,
+  "style-transfer": Palette,
+  "text-to-image": ImageIcon,
+  "virtual-tryon": Shirt,
+  "face-swap": RefreshCw,
+  "age-progression": RefreshCw,
+  "image-upscaler": TrendingUp,
+  editing: Scissors,
+  enhancement: TrendingUp,
+  artistic: Palette,
+  generation: ImageIcon,
+  fashion: Shirt,
+  creative: RefreshCw,
+  "image editing": RefreshCw,
+}
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false)
@@ -15,6 +50,7 @@ export default function PricingPage() {
   const [userCredits, setUserCredits] = useState(0)
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tools, setTools] = useState<any[]>([])
 
   useEffect(() => {
     const supabase = createClient()
@@ -31,6 +67,17 @@ export default function PricingPage() {
         if (data) {
           setUserCredits(data.credits)
         }
+      }
+
+      const { data: toolsData } = await supabase
+        .from("ai_tools")
+        .select("*")
+        .eq("is_active", true)
+        .order("usage_count", { ascending: false })
+        .limit(8)
+
+      if (toolsData) {
+        setTools(toolsData)
       }
     }
 
@@ -304,12 +351,96 @@ export default function PricingPage() {
         {/* Page Header */}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-            Simple, Transparent Pricing
+            Everything you need to edit images like a pro
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Choose the perfect plan for your needs. All plans include access to our complete suite of AI tools with no
-            hidden fees.
+            Our comprehensive suite of AI-powered tools handles every aspect of professional image editing
           </p>
+
+          {tools.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {tools.slice(0, 8).map((tool) => {
+                const IconComponent = iconMap[tool.tool_id] || iconMap[tool.category] || ImageIcon
+                return (
+                  <Link key={tool.tool_id} href={`/tools/${tool.tool_id}`}>
+                    <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full">
+                      {/* Tool Visual Area */}
+                      <div className="relative h-48 bg-gradient-to-br from-gray-600 via-gray-700 to-gray-800 overflow-hidden">
+                        <div className="absolute inset-0 opacity-10">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:15px_15px]"></div>
+                        </div>
+
+                        <div className="absolute inset-0">
+                          {tool.image_url ? (
+                            <img
+                              src={tool.image_url || "/placeholder.svg"}
+                              alt={tool.name}
+                              className="w-full h-full object-cover absolute inset-0"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                                target.nextElementSibling?.classList.remove("hidden")
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
+                          >
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                              <IconComponent className="w-8 h-8 text-white" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Featured Badge */}
+                        {tool.is_featured && (
+                          <Badge className="absolute top-3 right-3 bg-yellow-500 text-black text-xs font-semibold z-10">
+                            Featured
+                          </Badge>
+                        )}
+
+                        {/* Category Badge */}
+                        <Badge
+                          variant="secondary"
+                          className="absolute top-3 left-3 bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs z-10"
+                        >
+                          {tool.category.replace("-", " ")}
+                        </Badge>
+
+                        {/* Bottom Stats */}
+                        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-sm z-10">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span>{tool.rating}</span>
+                            </div>
+                            <span className="opacity-70">•</span>
+                            <span className="opacity-90">{tool.usage_count || 0} uses</span>
+                          </div>
+                          <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                            <span className="font-semibold">{tool.credits_per_use}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Area */}
+                      <CardContent className="p-4 flex-1 flex flex-col">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                            {tool.name}
+                          </h3>
+                          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 -mt-1 p-1">
+                            <Heart className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 flex-1">{tool.description}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-4 mb-8">
             <span className={`text-lg font-medium ${!isYearly ? "text-purple-600" : "text-gray-500"}`}>Monthly</span>
