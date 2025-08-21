@@ -225,8 +225,21 @@ export default async function LandingPage() {
                 <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
                   <Card className="p-6 hover:shadow-lg transition-shadow border-purple-100 cursor-pointer">
                     <CardContent className="p-0">
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                        <IconComponent className="w-6 h-6 text-purple-600" />
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                        {tool.image_url ? (
+                          <img
+                            src={tool.image_url || "/placeholder.svg"}
+                            alt={tool.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                              target.nextElementSibling?.classList.remove("hidden")
+                            }}
+                          />
+                        ) : null}
+                        <IconComponent className={`w-6 h-6 text-purple-600 ${tool.image_url ? "hidden" : ""}`} />
                       </div>
                       <h3 className="font-semibold mb-2">{tool.name}</h3>
                       <p className="text-gray-600 text-sm mb-3">{tool.description}</p>

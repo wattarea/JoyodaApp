@@ -197,40 +197,44 @@ export default function ToolsPage() {
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
                         </div>
 
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                            {tool.image_url ? (
-                              <img
-                                src={tool.image_url || "/placeholder.svg"}
-                                alt={tool.name}
-                                className="w-10 h-10 object-contain"
-                                onError={(e) => {
-                                  // Fallback to icon if image fails to load
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = "none"
-                                  target.nextElementSibling?.classList.remove("hidden")
-                                }}
-                              />
-                            ) : null}
-                            <IconComponent className={`w-10 h-10 text-white ${tool.image_url ? "hidden" : ""}`} />
+                        <div className="absolute inset-0">
+                          {tool.image_url ? (
+                            <img
+                              src={tool.image_url || "/placeholder.svg"}
+                              alt={tool.name}
+                              className="w-full h-full object-cover absolute inset-0"
+                              onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                                target.nextElementSibling?.classList.remove("hidden")
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
+                          >
+                            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                              <IconComponent className="w-10 h-10 text-white" />
+                            </div>
                           </div>
                         </div>
 
                         {/* Featured Badge - Top Right */}
-                        <Badge className="absolute top-4 right-4 bg-yellow-500 text-black font-semibold shadow-lg">
+                        <Badge className="absolute top-4 right-4 bg-yellow-500 text-black font-semibold shadow-lg z-10">
                           ⭐ Featured
                         </Badge>
 
                         {/* Category Badge - Top Left */}
                         <Badge
                           variant="secondary"
-                          className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm text-white border-white/30"
+                          className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm text-white border-white/30 z-10"
                         >
                           {tool.category.replace("-", " ")}
                         </Badge>
 
                         {/* Stats Overlay - Bottom */}
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
+                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white z-10">
                           <div className="flex items-center gap-3 text-sm">
                             <div className="flex items-center gap-1">
                               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -245,7 +249,7 @@ export default function ToolsPage() {
                         </div>
 
                         {/* Hover Play Button */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
                           <div className="w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center">
                             <Play className="w-8 h-8 text-white ml-1" />
                           </div>
@@ -293,28 +297,32 @@ export default function ToolsPage() {
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:15px_15px]"></div>
                       </div>
 
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          {tool.image_url ? (
-                            <img
-                              src={tool.image_url || "/placeholder.svg"}
-                              alt={tool.name}
-                              className="w-6 h-6 object-contain"
-                              onError={(e) => {
-                                // Fallback to icon if image fails to load
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                target.nextElementSibling?.classList.remove("hidden")
-                              }}
-                            />
-                          ) : null}
-                          <IconComponent className={`w-6 h-6 text-white ${tool.image_url ? "hidden" : ""}`} />
+                      <div className="absolute inset-0">
+                        {tool.image_url ? (
+                          <img
+                            src={tool.image_url || "/placeholder.svg"}
+                            alt={tool.name}
+                            className="w-full h-full object-cover absolute inset-0"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                              target.nextElementSibling?.classList.remove("hidden")
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
+                        >
+                          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <IconComponent className="w-6 h-6 text-white" />
+                          </div>
                         </div>
                       </div>
 
                       {/* Featured Badge - If Featured */}
                       {tool.is_featured && (
-                        <Badge className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-semibold">
+                        <Badge className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-semibold z-10">
                           Featured
                         </Badge>
                       )}
@@ -322,13 +330,13 @@ export default function ToolsPage() {
                       {/* Category Badge */}
                       <Badge
                         variant="secondary"
-                        className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs"
+                        className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs z-10"
                       >
                         {tool.category.replace("-", " ")}
                       </Badge>
 
                       {/* Bottom Stats */}
-                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-xs">
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-xs z-10">
                         <div className="flex items-center gap-2">
                           <div className="flex items-center gap-1">
                             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
