@@ -266,7 +266,22 @@ export default async function DashboardPage() {
                           <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <IconComponent className="w-5 h-5 text-purple-600" />
+                                {tool.image_url ? (
+                                  <img
+                                    src={tool.image_url || "/placeholder.svg"}
+                                    alt={tool.name}
+                                    className="w-5 h-5 object-contain"
+                                    onError={(e) => {
+                                      // Fallback to icon if image fails to load
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = "none"
+                                      target.nextElementSibling?.classList.remove("hidden")
+                                    }}
+                                  />
+                                ) : null}
+                                <IconComponent
+                                  className={`w-5 h-5 text-purple-600 ${tool.image_url ? "hidden" : ""}`}
+                                />
                               </div>
                               <div>
                                 <h4 className="font-medium">{tool.name}</h4>

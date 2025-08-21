@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Wrench, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Users, Wrench, Workflow, HeadphonesIcon } from "lucide-react"
 
 const adminNavItems = [
   {
@@ -12,19 +12,24 @@ const adminNavItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Kullanıcılar",
+    title: "Users",
     href: "/admin/users",
     icon: Users,
   },
   {
-    title: "Araçlar",
+    title: "Tools",
     href: "/admin/metools",
     icon: Wrench,
   },
   {
-    title: "İstatistikler",
-    href: "/admin/analytics",
-    icon: BarChart3,
+    title: "n8n",
+    href: "/admin/n8n",
+    icon: Workflow,
+  },
+  {
+    title: "Support",
+    href: "/admin/support",
+    icon: HeadphonesIcon,
   },
 ]
 

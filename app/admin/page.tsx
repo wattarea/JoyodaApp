@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/admin-auth"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Wrench, DollarSign, Package, TrendingUp, Activity } from "lucide-react"
+import { AdminNav } from "@/components/admin/admin-nav"
 
 export default async function AdminPage() {
   await requireAdmin()
@@ -52,6 +53,8 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdminNav />
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>

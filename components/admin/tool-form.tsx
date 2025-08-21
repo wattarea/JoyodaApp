@@ -22,6 +22,7 @@ interface Tool {
   is_active: boolean
   is_featured: boolean
   icon_name?: string
+  image_url?: string
   processing_time_estimate?: number
   success_rate?: number
   max_file_size_mb?: number
@@ -48,6 +49,7 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
     is_active: tool?.is_active ?? true,
     is_featured: tool?.is_featured ?? false,
     icon_name: tool?.icon_name || "",
+    image_url: tool?.image_url || "",
     processing_time_estimate: tool?.processing_time_estimate || 30,
     success_rate: tool?.success_rate || 99.9,
     max_file_size_mb: tool?.max_file_size_mb || 10,
@@ -155,6 +157,19 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
               placeholder="e.g., fal-ai/birefnet"
               required
             />
+          </div>
+
+          <div>
+            <Label htmlFor="image_url">Tool Image URL</Label>
+            <Input
+              id="image_url"
+              value={formData.image_url}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              placeholder="https://example.com/tool-image.png or /images/tool.png"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter a URL to an image that represents this tool. Leave empty for default icon.
+            </p>
           </div>
         </div>
 

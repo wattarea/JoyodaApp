@@ -116,3 +116,61 @@ export async function toggleToolStatusAction(toolId: string, isActive: boolean) 
     return { success: false, error: (error as Error).message }
   }
 }
+
+export async function updateUserAction(
+  userId: string,
+  userData: {
+    first_name: string
+    last_name: string
+    credits: number
+    role: string
+  },
+) {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        ...userData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId)
+      .select()
+      .single()
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath("/admin/users")
+    return { success: true, user: data }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+}
+
+export async function deleteUserAction(userId: string) {
+  try {
+    const supabase = await createClient()
+
+    // First delete from auth.users (this will cascade to other tables)
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+
+    if (authError) {
+      return { success: false, error: authError.message }
+    }
+
+    // Also delete from custom users table
+    const { error: userError } = await supabase.from("users").delete().eq("id", userId)
+
+    if (userError) {
+      return { success: false, error: userError.message }
+    }
+
+    revalidatePath("/admin/users")
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: (error as Error).message }
+  }
+}
