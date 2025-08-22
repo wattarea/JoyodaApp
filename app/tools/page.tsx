@@ -198,26 +198,23 @@ export default function ToolsPage() {
                         </div>
 
                         <div className="absolute inset-0">
-                          {tool.image_url ? (
-                            <img
-                              src={tool.image_url || "/placeholder.svg"}
-                              alt={tool.name}
-                              className="w-full h-full object-cover absolute inset-0"
-                              onError={(e) => {
-                                // Fallback to icon if image fails to load
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                target.nextElementSibling?.classList.remove("hidden")
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
-                          >
+                          <div className="w-full h-full flex items-center justify-center absolute inset-0">
                             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                               <IconComponent className="w-10 h-10 text-white" />
                             </div>
                           </div>
+                          {tool.image_url && (
+                            <img
+                              src={tool.image_url || "/placeholder.svg"}
+                              alt={tool.name}
+                              className="w-full h-full object-cover absolute inset-0 z-10"
+                              onError={(e) => {
+                                // Hide image on error, show icon underneath
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                              }}
+                            />
+                          )}
                         </div>
 
                         {/* Featured Badge - Top Right */}
@@ -298,26 +295,23 @@ export default function ToolsPage() {
                       </div>
 
                       <div className="absolute inset-0">
-                        {tool.image_url ? (
-                          <img
-                            src={tool.image_url || "/placeholder.svg"}
-                            alt={tool.name}
-                            className="w-full h-full object-cover absolute inset-0"
-                            onError={(e) => {
-                              // Fallback to icon if image fails to load
-                              const target = e.target as HTMLImageElement
-                              target.style.display = "none"
-                              target.nextElementSibling?.classList.remove("hidden")
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
-                        >
+                        <div className="w-full h-full flex items-center justify-center absolute inset-0">
                           <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                             <IconComponent className="w-6 h-6 text-white" />
                           </div>
                         </div>
+                        {tool.image_url && (
+                          <img
+                            src={tool.image_url || "/placeholder.svg"}
+                            alt={tool.name}
+                            className="w-full h-full object-cover absolute inset-0 z-10"
+                            onError={(e) => {
+                              // Hide image on error, show icon underneath
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Featured Badge - If Featured */}
