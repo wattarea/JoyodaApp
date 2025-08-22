@@ -20,20 +20,46 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
 
     async function getUser() {
       try {
+        console.log("[v0] UnifiedHeader: Fetching user data")
         const {
           data: { user: authUser },
+          error: authError,
         } = await supabase.auth.getUser()
+
+        if (authError) {
+          console.error("[v0] UnifiedHeader: Auth error:", authError)
+          setLoading(false)
+          return
+        }
+
         setUser(authUser)
 
-        if (authUser) {
-          const { data: userInfo } = await supabase.from("users").select("credits").eq("email", authUser.email).single()
-          setUserData(userInfo)
+        if (authUser?.email) {
+          console.log("[v0] UnifiedHeader: Fetching user credits for:", authUser.email)
+          const { data: userInfo, error: userError } = await supabase
+            .from("users")
+            .select("credits")
+            .eq("email", authUser.email)
+            .single()
+
+          if (userError) {
+            console.error("[v0] UnifiedHeader: User data error:", userError)
+            setUserData({ credits: 5 })
+          } else {
+            console.log("[v0] UnifiedHeader: User data fetched:", userInfo)
+            setUserData(userInfo)
+          }
         }
       } catch (error) {
-        console.error("Error fetching user:", error)
+        console.error("[v0] UnifiedHeader: Unexpected error:", error)
+        setUserData({ credits: 5 })
       } finally {
         setLoading(false)
       }
@@ -44,18 +70,34 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[v0] UnifiedHeader: Auth state changed:", event)
       if (event === "SIGNED_OUT") {
         setUser(null)
         setUserData(null)
       } else if (session?.user) {
         setUser(session.user)
+        if (session.user.email) {
+          supabase
+            .from("users")
+            .select("credits")
+            .eq("email", session.user.email)
+            .single()
+            .then(({ data, error }) => {
+              if (error) {
+                console.error("[v0] UnifiedHeader: Error refetching user data:", error)
+                setUserData({ credits: 5 })
+              } else {
+                setUserData(data)
+              }
+            })
+        }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, mounted])
 
-  if (!mounted) {
+  if (!mounted || loading) {
     return (
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -112,6 +154,14 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
                 Tools
               </Link>
               <Link
+                href="/n8n"
+                className={`transition-colors ${
+                  currentPage === "n8n" ? "text-purple-600 font-medium" : "text-gray-600 hover:text-purple-600"
+                }`}
+              >
+                Workflows
+              </Link>
+              <Link
                 href="/my-documents"
                 className={`transition-colors ${
                   currentPage === "my-documents" ? "text-purple-600 font-medium" : "text-gray-600 hover:text-purple-600"
@@ -157,9 +207,7 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
           {isAuthenticated ? (
             // Authenticated Actions
             <>
-              {!loading && userData && (
-                <RealTimeCredits initialCredits={userData.credits || 0} userEmail={user.email || ""} />
-              )}
+              <RealTimeCredits initialCredits={userData?.credits || 5} userEmail={user?.email || ""} />
               <TurkishSignOutButton />
             </>
           ) : (
