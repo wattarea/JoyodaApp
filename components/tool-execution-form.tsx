@@ -203,7 +203,7 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
     try {
       let parameters: any = {}
 
-      if (tool.category === "text-to-image") {
+      if (tool.category === "text-to-image" || tool.tool_id === "text-to-image") {
         parameters = {
           prompt: prompt.trim(),
           aspectRatio,
