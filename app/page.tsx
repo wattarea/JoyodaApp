@@ -13,8 +13,11 @@ export default function LandingPage() {
 
   useEffect(() => {
     async function fetchTools() {
+      console.log("[v0] Starting to fetch tools from database")
       try {
         const supabase = createClient()
+        console.log("[v0] Supabase client created successfully")
+
         const { data, error } = await supabase
           .from("ai_tools")
           .select("*")
@@ -22,12 +25,19 @@ export default function LandingPage() {
           .order("usage_count", { ascending: false })
           .limit(8)
 
+        console.log("[v0] Database query completed", { data: data?.length, error })
+
         if (data && !error) {
+          console.log("[v0] Setting tools data:", data.length, "tools")
           setTools(data)
+        } else if (error) {
+          console.log("[v0] Database error, using fallback tools:", error)
+          setTools(fallbackTools)
         }
       } catch (error) {
-        // Use fallback tools if database is not available
-        console.log("Database not available, using fallback tools")
+        console.log("[v0] Fetch error caught, using fallback tools:", error)
+        console.error("Database fetch error details:", error)
+        setTools(fallbackTools)
       }
     }
 

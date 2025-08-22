@@ -34,7 +34,12 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
         } = await supabase.auth.getUser()
 
         if (authError) {
-          console.error("[v0] UnifiedHeader: Auth error:", authError)
+          // Only log actual errors, not missing sessions
+          if (authError.message !== "Auth session missing!" && !authError.message.includes("session")) {
+            console.error("[v0] UnifiedHeader: Auth error:", authError)
+          }
+          setUser(null)
+          setUserData(null)
           setLoading(false)
           return
         }
@@ -59,7 +64,8 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
         }
       } catch (error) {
         console.error("[v0] UnifiedHeader: Unexpected error:", error)
-        setUserData({ credits: 5 })
+        setUser(null)
+        setUserData(null)
       } finally {
         setLoading(false)
       }
