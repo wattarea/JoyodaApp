@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,27 +17,34 @@ import {
   Play,
 } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
+import { useEffect, useState } from "react"
 
-export default async function LandingPage() {
-  let tools: any[] = []
+export default function LandingPage() {
+  const [tools, setTools] = useState<any[]>([])
 
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("ai_tools")
-      .select("*")
-      .eq("is_active", true)
-      .order("usage_count", { ascending: false })
-      .limit(8)
+  useEffect(() => {
+    async function fetchTools() {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from("ai_tools")
+          .select("*")
+          .eq("is_active", true)
+          .order("usage_count", { ascending: false })
+          .limit(8)
 
-    if (data && !error) {
-      tools = data
+        if (data && !error) {
+          setTools(data)
+        }
+      } catch (error) {
+        // Use fallback tools if database is not available
+        console.log("Database not available, using fallback tools")
+      }
     }
-  } catch (error) {
-    // Use fallback tools if database is not available
-    console.log("Database not available, using fallback tools")
-  }
+
+    fetchTools()
+  }, [])
 
   const iconMap: Record<string, any> = {
     "background-remover": Scissors,
