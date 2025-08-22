@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { createToolAction, updateToolAction } from "@/lib/admin-actions"
-import { Upload, X } from "lucide-react"
 
 interface Tool {
   id?: number
@@ -59,41 +58,6 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const [imagePreview, setImagePreview] = useState<string>(tool?.image_url || "")
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setIsUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      const response = await fetch("/api/upload-tool-image", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
-
-      const { url } = await response.json()
-      setFormData((prev) => ({ ...prev, image_url: url }))
-      setImagePreview(url)
-    } catch (error) {
-      alert("Image upload failed: " + (error as Error).message)
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  const removeImage = () => {
-    setFormData((prev) => ({ ...prev, image_url: "" }))
-    setImagePreview("")
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -196,47 +160,16 @@ export function ToolForm({ tool, onSuccess, onCancel }: ToolFormProps) {
           </div>
 
           <div>
-            <Label htmlFor="tool_image">Tool Image</Label>
-            <div className="space-y-3">
-              {imagePreview ? (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview || "/placeholder.svg"}
-                    alt="Tool preview"
-                    className="w-32 h-32 object-cover rounded-lg border"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">No image</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input type="file" id="image_upload" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById("image_upload")?.click()}
-                  disabled={isUploading}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  {isUploading ? "Uploading..." : "Upload Image"}
-                </Button>
-              </div>
-
-              <p className="text-xs text-gray-500">
-                Upload an image that represents this tool. Max 5MB. Recommended: 400x300px
-              </p>
-            </div>
+            <Label htmlFor="image_url">Tool Image URL</Label>
+            <Input
+              id="image_url"
+              value={formData.image_url}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              placeholder="https://example.com/tool-image.png or /images/tool.png"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter a URL to an image that represents this tool. Leave empty for default icon.
+            </p>
           </div>
         </div>
 

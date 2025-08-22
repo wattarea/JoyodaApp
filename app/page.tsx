@@ -1,48 +1,43 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Users, ImageIcon, Clock, CheckCircle, Scissors, Sparkles, Video, Palette } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
-import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/server"
 
-export default function LandingPage() {
-  const [tools, setTools] = useState<any[]>([])
+export default async function LandingPage() {
+  let tools: any[] = []
 
-  useEffect(() => {
-    async function fetchTools() {
-      console.log("[v0] Starting to fetch tools from database")
-      try {
-        const supabase = createClient()
-        console.log("[v0] Supabase client created successfully")
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("ai_tools")
+      .select("*")
+      .eq("is_active", true)
+      .order("usage_count", { ascending: false })
+      .limit(8)
 
-        const { data, error } = await supabase
-          .from("ai_tools")
-          .select("*")
-          .eq("is_active", true)
-          .order("usage_count", { ascending: false })
-          .limit(8)
-
-        console.log("[v0] Database query completed", { data: data?.length, error })
-
-        if (data && !error) {
-          console.log("[v0] Setting tools data:", data.length, "tools")
-          setTools(data)
-        } else if (error) {
-          console.log("[v0] Database error, using fallback tools:", error)
-          setTools(fallbackTools)
-        }
-      } catch (error) {
-        console.log("[v0] Fetch error caught, using fallback tools:", error)
-        console.error("Database fetch error details:", error)
-        setTools(fallbackTools)
-      }
+    if (data && !error) {
+      tools = data
     }
+  } catch (error) {
+    // Use fallback tools if database is not available
+    console.log("Database not available, using fallback tools")
+  }
 
-    fetchTools()
-  }, [])
+  const iconMap: Record<string, any> = {
+    "background-remover": Scissors,
+    "face-enhancer": Sparkles,
+    "image-upscaler": ImageIcon,
+    "style-transfer": Palette,
+    "text-to-image": ImageIcon,
+    imagen4: ImageIcon,
+    "face-swap": Users,
+    "virtual-try-on": Users,
+    "age-progression": Clock,
+    "text-to-video-kling": Video,
+    "text-to-video-hailuo": Video,
+  }
 
   const fallbackTools = [
     {
@@ -111,20 +106,6 @@ export default function LandingPage() {
     },
   ]
 
-  const iconMap: Record<string, any> = {
-    "background-remover": Scissors,
-    "face-enhancer": Sparkles,
-    "image-upscaler": ImageIcon,
-    "style-transfer": Palette,
-    "text-to-image": ImageIcon,
-    imagen4: ImageIcon,
-    "face-swap": Users,
-    "virtual-try-on": Users,
-    "age-progression": Clock,
-    "text-to-video-kling": Video,
-    "text-to-video-hailuo": Video,
-  }
-
   const displayTools = tools.length > 0 ? tools : fallbackTools
 
   return (
@@ -138,15 +119,15 @@ export default function LandingPage() {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
+            <Link href="#features" className="text-gray-600 hover:text-purple-600 transition-colors">
               Features
-            </a>
-            <a href="#pricing" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
+            </Link>
+            <Link href="#pricing" className="text-gray-600 hover:text-purple-600 transition-colors">
               Pricing
-            </a>
-            <a href="#tools" className="text-gray-600 hover:text-purple-600 transition-colors scroll-smooth">
+            </Link>
+            <Link href="#tools" className="text-gray-600 hover:text-purple-600 transition-colors">
               Tools
-            </a>
+            </Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/signin">
@@ -228,7 +209,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 scroll-mt-20">
+      <section id="features tools" className="py-20 px-4">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Everything you need to edit images like a pro</h2>
@@ -237,50 +218,27 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div id="tools" className="scroll-mt-20">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {displayTools.slice(0, 8).map((tool) => {
-                const IconComponent = iconMap[tool.tool_id] || ImageIcon
-                return (
-                  <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
-                    <Card className="hover:shadow-lg transition-shadow border-purple-100 cursor-pointer overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="relative h-32 bg-gradient-to-br from-purple-500 to-pink-500 overflow-hidden">
-                          {tool.image_url ? (
-                            <img
-                              src={tool.image_url || "/placeholder.svg"}
-                              alt={tool.name}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback to icon if image fails to load
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                target.nextElementSibling?.classList.remove("hidden")
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`absolute inset-0 flex items-center justify-center ${tool.image_url ? "hidden" : ""}`}
-                          >
-                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                              <IconComponent className="w-8 h-8 text-white" />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6">
-                          <h3 className="font-semibold mb-2">{tool.name}</h3>
-                          <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-purple-600 font-medium">{tool.credits_per_use} credits</span>
-                            <span className="text-gray-500">{tool.category}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {displayTools.slice(0, 8).map((tool) => {
+              const IconComponent = iconMap[tool.tool_id] || ImageIcon
+              return (
+                <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
+                  <Card className="p-6 hover:shadow-lg transition-shadow border-purple-100 cursor-pointer">
+                    <CardContent className="p-0">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <IconComponent className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <h3 className="font-semibold mb-2">{tool.name}</h3>
+                      <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-purple-600 font-medium">{tool.credits_per_use} credits</span>
+                        <span className="text-gray-500">{tool.category}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
           </div>
 
           <div className="text-center mt-12">
@@ -420,7 +378,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50 scroll-mt-20">
+      <section id="pricing" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Choose the perfect plan for you</h2>

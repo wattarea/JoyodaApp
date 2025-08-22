@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { RealTimeCredits } from "@/components/real-time-credits"
 import { TurkishSignOutButton } from "@/components/turkish-sign-out-button"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 interface UnifiedHeaderProps {
@@ -16,78 +16,24 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const supabaseRef = useRef(createClient())
-  const supabase = supabaseRef.current
-
-  const lastFetchRef = useRef<number>(0)
-  const FETCH_COOLDOWN = 5000 // 5 seconds
+  const supabase = createClient()
 
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  const fetchUserData = useCallback(
-    async (userEmail: string) => {
-      const now = Date.now()
-      if (now - lastFetchRef.current < FETCH_COOLDOWN) {
-        return // Skip if called too recently
-      }
-      lastFetchRef.current = now
-
-      try {
-        console.log("[v0] UnifiedHeader: Fetching user credits for:", userEmail)
-        const { data: userInfo, error: userError } = await supabase
-          .from("users")
-          .select("credits")
-          .eq("email", userEmail)
-          .single()
-
-        if (userError) {
-          console.error("[v0] UnifiedHeader: User data error:", userError)
-          setUserData({ credits: 5 })
-        } else {
-          console.log("[v0] UnifiedHeader: User data fetched:", userInfo)
-          setUserData(userInfo)
-        }
-      } catch (error) {
-        console.error("[v0] UnifiedHeader: Error fetching user data:", error)
-        setUserData({ credits: 5 })
-      }
-    },
-    [supabase],
-  )
-
-  useEffect(() => {
-    if (!mounted) return
 
     async function getUser() {
       try {
-        console.log("[v0] UnifiedHeader: Initial user fetch")
         const {
           data: { user: authUser },
-          error: authError,
         } = await supabase.auth.getUser()
-
-        if (authError) {
-          // Only log actual errors, not missing sessions
-          if (authError.message !== "Auth session missing!" && !authError.message.includes("session")) {
-            console.error("[v0] UnifiedHeader: Auth error:", authError)
-          }
-          setUser(null)
-          setUserData(null)
-          setLoading(false)
-          return
-        }
-
         setUser(authUser)
 
-        if (authUser?.email) {
-          await fetchUserData(authUser.email)
+        if (authUser) {
+          const { data: userInfo } = await supabase.from("users").select("credits").eq("email", authUser.email).single()
+          setUserData(userInfo)
         }
       } catch (error) {
-        console.error("[v0] UnifiedHeader: Unexpected error:", error)
-        setUser(null)
-        setUserData(null)
+        console.error("Error fetching user:", error)
       } finally {
         setLoading(false)
       }
@@ -98,23 +44,18 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[v0] UnifiedHeader: Auth state changed:", event)
       if (event === "SIGNED_OUT") {
         setUser(null)
         setUserData(null)
-        lastFetchRef.current = 0 // Reset cooldown on signout
-      } else if (event === "SIGNED_IN" && session?.user) {
+      } else if (session?.user) {
         setUser(session.user)
-        if (session.user.email) {
-          fetchUserData(session.user.email)
-        }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [mounted, fetchUserData]) // Remove supabase from dependencies to prevent infinite loop
+  }, [supabase])
 
-  if (!mounted || loading) {
+  if (!mounted) {
     return (
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -141,7 +82,7 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
 
   return (
     <header className="bg-white border-b sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between" suppressHydrationWarning>
         {/* Logo */}
         <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2">
           <span className="font-black text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -169,14 +110,6 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
                 }`}
               >
                 Tools
-              </Link>
-              <Link
-                href="/n8n"
-                className={`transition-colors ${
-                  currentPage === "n8n" ? "text-purple-600 font-medium" : "text-gray-600 hover:text-purple-600"
-                }`}
-              >
-                Workflows
               </Link>
               <Link
                 href="/my-documents"
@@ -224,7 +157,9 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
           {isAuthenticated ? (
             // Authenticated Actions
             <>
-              <RealTimeCredits initialCredits={userData?.credits || 5} userEmail={user?.email || ""} />
+              {!loading && userData && (
+                <RealTimeCredits initialCredits={userData.credits || 0} userEmail={user.email || ""} />
+              )}
               <TurkishSignOutButton />
             </>
           ) : (

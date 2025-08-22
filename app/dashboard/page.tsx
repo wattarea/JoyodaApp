@@ -265,12 +265,12 @@ export default async function DashboardPage() {
                         <Link key={tool.tool_id} href={`/tools/${tool.tool_id}`} className="block">
                           <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center overflow-hidden">
+                              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                 {tool.image_url ? (
                                   <img
                                     src={tool.image_url || "/placeholder.svg"}
                                     alt={tool.name}
-                                    className="w-full h-full object-cover"
+                                    className="w-5 h-5 object-contain"
                                     onError={(e) => {
                                       // Fallback to icon if image fails to load
                                       const target = e.target as HTMLImageElement
