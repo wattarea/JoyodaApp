@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Upload, Download, Loader2, AlertCircle, Video } from "lucide-react"
+import { Upload, Loader2, AlertCircle, Video } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface ToolExecutionFormProps {
@@ -40,6 +40,10 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
   const [ageChange, setAgeChange] = useState("10 years older")
   const [garmentType, setGarmentType] = useState("top")
 
+  const [modelGender, setModelGender] = useState("male")
+  const [bodySize, setBodySize] = useState("M")
+  const [location, setLocation] = useState("studio")
+
   const [aspectRatio, setAspectRatio] = useState("1:1")
   const [numImages, setNumImages] = useState(1)
   const [seed, setSeed] = useState("")
@@ -54,6 +58,14 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
   const [colorMode, setColorMode] = useState("natural")
   const [detailPreservation, setDetailPreservation] = useState([0.7])
   const [backgroundHandling, setBackgroundHandling] = useState("preserve")
+
+  const [renderingSpeed, setRenderingSpeed] = useState("BALANCED")
+  const [characterStyle, setCharacterStyle] = useState("AUTO")
+  const [faceFile, setFaceFile] = useState<File | null>(null)
+
+  const [fashionStyle, setFashionStyle] = useState("professional")
+  const [fashionBackground, setFashionBackground] = useState("studio")
+  const [fashionLighting, setFashionLighting] = useState("natural")
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -78,6 +90,20 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
       }
       setGarmentFile(file)
       setError(null)
+    }
+  }
+
+  const handleFaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+      if (file.size > maxSize) {
+        setError(`File size must be less than 10MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`)
+        return
+      }
+      setFaceFile(file)
+      setError(null)
+      console.log("[v0] Face file uploaded:", file.name)
     }
   }
 
@@ -182,13 +208,39 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
       return
     }
 
+    if (tool.tool_id === "fashion-photoshoot") {
+      console.log("[v0] Fashion photoshoot validation - imageFile:", imageFile?.name, "faceFile:", faceFile?.name)
+      if (!imageFile) {
+        setError("Please upload a garment image for fashion photoshoot.")
+        return
+      }
+      if (!faceFile) {
+        setError("Please upload a face image for fashion photoshoot.")
+        return
+      }
+    }
+
+    if (tool.tool_id === "nextstep-image-editor") {
+      if (!prompt.trim()) {
+        setError("Please enter a character description.")
+        return
+      }
+      if (referenceFiles.length === 0) {
+        setError("Please upload at least one reference image.")
+        return
+      }
+    }
+
     if (
       tool.category !== "text-to-image" &&
       tool.tool_id !== "text-to-image" && // Added tool_id check for text-to-image
       tool.category !== "text-to-video" &&
       tool.category !== "fashion" &&
       tool.category !== "creative" &&
+      tool.category !== "character" && // Added character category exception
       tool.category !== "image-to-video" &&
+      tool.tool_id !== "nextstep-image-editor" && // Added nextstep exception
+      tool.tool_id !== "fashion-photoshoot" && // Added fashion photoshoot exception
       !imageFile
     ) {
       setError("Please upload an image to process.")
@@ -203,7 +255,17 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
     try {
       let parameters: any = {}
 
-      if (tool.category === "text-to-image" || tool.tool_id === "text-to-image") {
+      if (tool.tool_id === "ideogram-v2-generator") {
+        parameters = {
+          prompt: prompt.trim(),
+          aspectRatio,
+          style: characterStyle, // Reuse characterStyle for Ideogram V2 style
+          expandPrompt: true,
+          negativePrompt: negativePrompt.trim(),
+          ...(seed && { seed: Number.parseInt(seed) }),
+          numImages: 1,
+        }
+      } else if (tool.category === "text-to-image" || tool.tool_id === "text-to-image") {
         parameters = {
           prompt: prompt.trim(),
           aspectRatio,
@@ -242,6 +304,19 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
           personImageUrl,
           garmentImageUrl,
           garmentType,
+          fashionStyle,
+          fashionBackground,
+          fashionLighting,
+        }
+      } else if (tool.tool_id === "fashion-photoshoot") {
+        const garmentImageUrl = await uploadImage(imageFile!)
+        const faceImageUrl = await uploadImage(faceFile!)
+        parameters = {
+          garment_image: garmentImageUrl,
+          face_image: faceImageUrl,
+          gender: modelGender,
+          body_size: bodySize,
+          location,
         }
       } else if (tool.category === "creative" && tool.tool_id === "character-generation") {
         const referenceImageUrls = await Promise.all(referenceFiles.map((file) => uploadImage(file)))
@@ -249,6 +324,15 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
           prompt: prompt.trim(),
           referenceImageUrls,
           quality,
+        }
+      } else if (tool.tool_id === "nextstep-image-editor" || tool.category === "character") {
+        const referenceImageUrls = await Promise.all(referenceFiles.map((file) => uploadImage(file)))
+        parameters = {
+          prompt: prompt.trim(),
+          referenceImageUrls,
+          renderingSpeed,
+          style: characterStyle,
+          numImages: 1,
         }
       } else {
         const imageUrl = await uploadImage(imageFile!)
@@ -307,6 +391,9 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
   const isCharacterGeneration = tool.category === "creative" && tool.tool_id === "character-generation"
   const isStyleTransfer = tool.category === "artistic"
   const isAgeProgression = tool.tool_id === "age-progression" // Declared isAgeProgression variable
+  const isNextstepEditor = tool.tool_id === "nextstep-image-editor" || tool.category === "character" // Updated nextstep tool detection to include character category
+  const isFashionPhotoshoot = tool.tool_id === "fashion-photoshoot" // Declared isFashionPhotoshoot variable
+  const isIdeogramV2 = tool.tool_id === "ideogram-v2-generator"
 
   return (
     <div className="space-y-8">
@@ -333,12 +420,175 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                       ? "Upload Images"
                       : isCharacterGeneration
                         ? "Character Generation"
-                        : "Upload Your Image"}
+                        : isNextstepEditor
+                          ? "Character Generator" // Updated title for ideogram character model
+                          : isFashionPhotoshoot
+                            ? "Fashion Photoshoot"
+                            : isIdeogramV2
+                              ? "Ideogram V2 Generator"
+                              : "Upload Your Image"}
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isTextToVideo ? (
+          {isIdeogramV2 ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="prompt">Prompt</Label>
+                <Textarea
+                  id="prompt"
+                  placeholder="Describe the image, poster, or logo you want to generate with Ideogram V2..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Ideogram V2 excels at typography and text generation. Be specific about text content and style.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="aspect-ratio">Aspect Ratio</Label>
+                <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select aspect ratio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1:1">Square (1:1)</SelectItem>
+                    <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                    <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                    <SelectItem value="4:3">Standard (4:3)</SelectItem>
+                    <SelectItem value="3:4">Portrait (3:4)</SelectItem>
+                    <SelectItem value="10:16">Tall Portrait (10:16)</SelectItem>
+                    <SelectItem value="16:10">Wide Landscape (16:10)</SelectItem>
+                    <SelectItem value="1:3">Very Tall (1:3)</SelectItem>
+                    <SelectItem value="3:1">Very Wide (3:1)</SelectItem>
+                    <SelectItem value="3:2">Classic (3:2)</SelectItem>
+                    <SelectItem value="2:3">Classic Portrait (2:3)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="style">Style</Label>
+                <Select value={characterStyle} onValueChange={setCharacterStyle}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto (Recommended)</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="realistic">Realistic</SelectItem>
+                    <SelectItem value="design">Design</SelectItem>
+                    <SelectItem value="render_3D">3D Render</SelectItem>
+                    <SelectItem value="anime">Anime</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="negative-prompt">Negative Prompt (Optional)</Label>
+                <Textarea
+                  id="negative-prompt"
+                  placeholder="Describe what you don't want in the image..."
+                  value={negativePrompt}
+                  onChange={(e) => setNegativePrompt(e.target.value)}
+                  rows={2}
+                />
+                <p className="text-xs text-gray-500 mt-1">Specify elements to avoid in the generated image</p>
+              </div>
+
+              <div>
+                <Label htmlFor="seed">Seed (Optional)</Label>
+                <Input
+                  id="seed"
+                  type="number"
+                  placeholder="Enter seed for reproducible results"
+                  value={seed}
+                  onChange={(e) => setSeed(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use the same seed with the same prompt to get consistent results
+                </p>
+              </div>
+            </div>
+          ) : isNextstepEditor ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="reference-images">Reference Images (1-5 images)</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    id="reference-images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleReferenceFilesChange}
+                    className="hidden"
+                  />
+                  <label htmlFor="reference-images" className="cursor-pointer">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {referenceFiles.length > 0
+                        ? `${referenceFiles.length} reference image(s) selected`
+                        : "Upload reference images for character consistency"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB each (max 5 images)</p>
+                  </label>
+                </div>
+                {referenceFiles.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    {referenceFiles.map((file, index) => (
+                      <div key={index}>• {file.name}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="character-prompt">Character Description</Label>
+                <Textarea
+                  id="character-prompt"
+                  placeholder="Describe the character you want to generate (e.g., 'A confident business woman in a modern office setting', 'A medieval knight in shining armor')"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Be specific about the character's appearance, clothing, and setting
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="rendering-speed">Rendering Speed</Label>
+                  <Select value={renderingSpeed} onValueChange={setRenderingSpeed}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select rendering speed" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TURBO">Turbo (Fastest)</SelectItem>
+                      <SelectItem value="BALANCED">Balanced (Recommended)</SelectItem>
+                      <SelectItem value="QUALITY">Quality (Best Results)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="character-style">Style</Label>
+                  <Select value={characterStyle} onValueChange={setCharacterStyle}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AUTO">Auto (Recommended)</SelectItem>
+                      <SelectItem value="REALISTIC">Realistic</SelectItem>
+                      <SelectItem value="FICTION">Fiction</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ) : isTextToVideo ? (
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="source-image" className="text-sm font-medium text-gray-700">
@@ -736,6 +986,95 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                 </Select>
               </div>
             </div>
+          ) : isFashionPhotoshoot ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="garment-image">Garment Image</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    id="garment-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label htmlFor="garment-image" className="cursor-pointer">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">
+                      {imageFile ? imageFile.name : "Upload garment/clothing image"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 4MB</p>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="face-image">Face Image</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
+                  <input
+                    id="face-image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFaceFileChange}
+                    className="hidden"
+                  />
+                  <label htmlFor="face-image" className="cursor-pointer">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">{faceFile ? faceFile.name : "Upload face/person image"}</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 4MB</p>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="model-gender">Model Gender</Label>
+                  <Select value={modelGender} onValueChange={setModelGender}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="body-size">Body Size</Label>
+                  <Select value={bodySize} onValueChange={setBodySize}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="XS">XS</SelectItem>
+                      <SelectItem value="S">S</SelectItem>
+                      <SelectItem value="M">M</SelectItem>
+                      <SelectItem value="L">L</SelectItem>
+                      <SelectItem value="XL">XL</SelectItem>
+                      <SelectItem value="XXL">XXL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="studio">Studio</SelectItem>
+                      <SelectItem value="park">Park</SelectItem>
+                      <SelectItem value="urban">Urban</SelectItem>
+                      <SelectItem value="beach">Beach</SelectItem>
+                      <SelectItem value="office">Office</SelectItem>
+                      <SelectItem value="street">Street</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           ) : (
             <div>
               <Label htmlFor="image">Select Image</Label>
@@ -749,108 +1088,6 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
                 </label>
               </div>
-            </div>
-          )}
-
-          {isAgeProgression && (
-            <div>
-              <Label htmlFor="ageChange">Age Change</Label>
-              <Input
-                id="ageChange"
-                value={ageChange}
-                onChange={(e) => setAgeChange(e.target.value)}
-                placeholder="e.g., 20 years older, make me look younger, teenage appearance..."
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Describe how you want to change the age (e.g., "15 years younger", "make me look like a teenager")
-              </p>
-            </div>
-          )}
-
-          {isStyleTransfer && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="plushie-intensity">Plushie Effect Intensity</Label>
-                <div className="px-3">
-                  <Slider
-                    id="plushie-intensity"
-                    min={0.1}
-                    max={1.0}
-                    step={0.1}
-                    value={plushieIntensity}
-                    onValueChange={setPlushieIntensity}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Subtle</span>
-                    <span>{plushieIntensity[0]}</span>
-                    <span>Strong</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="color-mode">Color Enhancement</Label>
-                <Select value={colorMode} onValueChange={setColorMode}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select color mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="natural">Natural Colors</SelectItem>
-                    <SelectItem value="vibrant">Vibrant & Bright</SelectItem>
-                    <SelectItem value="pastel">Soft Pastel</SelectItem>
-                    <SelectItem value="monochrome">Monochrome</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="detail-preservation">Detail Preservation</Label>
-                <div className="px-3">
-                  <Slider
-                    id="detail-preservation"
-                    min={0.1}
-                    max={1.0}
-                    step={0.1}
-                    value={detailPreservation}
-                    onValueChange={setDetailPreservation}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>Smooth</span>
-                    <span>{detailPreservation[0]}</span>
-                    <span>Detailed</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="background-handling">Background Handling</Label>
-                <Select value={backgroundHandling} onValueChange={setBackgroundHandling}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select background option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="preserve">Preserve Original</SelectItem>
-                    <SelectItem value="stylize">Apply Plushie Style</SelectItem>
-                    <SelectItem value="blur">Soft Blur</SelectItem>
-                    <SelectItem value="remove">Remove Background</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
-          {tool.category === "artistic" && !isAgeProgression && (
-            <div>
-              <Label htmlFor="stylePrompt">Additional Style Notes (Optional)</Label>
-              <Input
-                id="stylePrompt"
-                placeholder="e.g., cute kawaii style, vintage plushie, specific colors..."
-                value={stylePrompt}
-                onChange={(e) => setStylePrompt(e.target.value)}
-              />
             </div>
           )}
 
@@ -883,7 +1120,13 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                         ? "Try On"
                         : isCharacterGeneration
                           ? "Generate Character"
-                          : "Process"
+                          : isNextstepEditor
+                            ? "Generate Character" // Updated button text for ideogram character model
+                            : isFashionPhotoshoot
+                              ? "Generate Photoshoot"
+                              : isIdeogramV2
+                                ? "Generate with Ideogram V2"
+                                : "Process"
               } with AI (${currentCredits} credits)`
             )}
           </Button>
@@ -901,76 +1144,102 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            {isTextToVideo || isImageToVideo ? (
-              <Video className="w-5 h-5 text-purple-600" />
-            ) : (
-              <Download className="w-5 h-5 text-purple-600" />
-            )}
-            <CardTitle>Result</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {result || videoResult ? ( // Handle both image and video results
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
+      {(result || videoResult) && (
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-white to-green-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-gray-800 flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
                 {videoResult ? (
-                  <video src={videoResult} controls className="w-full h-auto" poster="/placeholder.svg">
-                    Your browser does not support the video tag.
-                  </video>
+                  <Video className="w-6 h-6 text-green-600" />
                 ) : (
-                  <img src={result || "/placeholder.svg"} alt="AI processed result" className="w-full h-auto" />
+                  <Upload className="w-6 h-6 text-green-600" />
                 )}
               </div>
-              <Button asChild className="w-full">
-                <a href={videoResult || result || ""} download target="_blank" rel="noopener noreferrer">
-                  <Download className="w-4 h-4 mr-2" />
+              {videoResult ? "Generated Video" : "Processed Image"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {videoResult ? (
+                <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                  <video
+                    src={videoResult}
+                    controls
+                    className="w-full h-auto max-h-96 object-contain"
+                    onError={(e) => {
+                      console.error("Video failed to load:", videoResult)
+                      const target = e.target as HTMLVideoElement
+                      target.style.display = "none"
+                      const errorDiv = target.nextElementSibling as HTMLElement
+                      if (errorDiv) errorDiv.style.display = "block"
+                    }}
+                  />
+                  <div className="hidden p-4 text-center text-gray-500">
+                    <p>Video failed to load. Please try again.</p>
+                  </div>
+                </div>
+              ) : result ? (
+                <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                  <img
+                    src={result || "/placeholder.svg"}
+                    alt="Processed result"
+                    className="w-full h-auto max-h-96 object-contain mx-auto"
+                    onError={(e) => {
+                      console.error("Image failed to load:", result)
+                      const target = e.target as HTMLImageElement
+                      target.style.display = "none"
+                      const errorDiv = target.nextElementSibling as HTMLElement
+                      if (errorDiv) errorDiv.style.display = "block"
+                    }}
+                  />
+                  <div className="hidden p-4 text-center text-gray-500">
+                    <p>Image failed to load. Please try again.</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex gap-2 justify-center">
+                <Button
+                  onClick={() => {
+                    const url = videoResult || result
+                    if (url) {
+                      const link = document.createElement("a")
+                      link.href = url
+                      link.download = `processed-${Date.now()}.${videoResult ? "mp4" : "jpg"}`
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                    }
+                  }}
+                  variant="outline"
+                  className="border-green-200 text-green-700 hover:bg-green-50"
+                >
                   Download {videoResult ? "Video" : "Image"}
-                </a>
-              </Button>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setResult(null)
+                    setVideoResult(null)
+                    setImageFile(null)
+                    setGarmentFile(null)
+                    setReferenceFiles([])
+                    setPrompt("")
+                    setNegativePrompt("")
+                    setStylePrompt("")
+                    setFashionStyle("professional")
+                    setFashionBackground("studio")
+                    setFashionLighting("natural")
+                  }}
+                  variant="outline"
+                  className="border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  Process Another
+                </Button>
+              </div>
             </div>
-          ) : (
-            <div className="bg-gray-100 rounded-lg p-12 text-center">
-              {isTextToVideo ? (
-                <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              ) : (
-                <Download className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              )}
-              <p className="text-gray-500">
-                Your {isTextToVideo ? "generated video" : "processed image"} will appear here
-              </p>
-              <p className="text-sm text-gray-400 mt-2">
-                {isTextToImage
-                  ? "Enter a prompt"
-                  : isTextToVideo
-                    ? "Enter a video prompt"
-                    : isImageToVideo
-                      ? "Upload an image and describe the motion"
-                      : isVirtualTryOn
-                        ? "Upload both images"
-                        : isCharacterGeneration
-                          ? "Upload reference images and enter a character description"
-                          : "Upload an image"}{" "}
-                and click "
-                {isTextToImage
-                  ? "Generate with Imagen4"
-                  : isTextToVideo
-                    ? "Generate Video"
-                    : isImageToVideo
-                      ? "Generate Video"
-                      : isVirtualTryOn
-                        ? "Try On"
-                        : isCharacterGeneration
-                          ? "Generate Character"
-                          : "Process"}{" "}
-                with AI" to get started
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

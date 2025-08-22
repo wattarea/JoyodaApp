@@ -8,9 +8,11 @@ import {
   transferStyle,
   ageProgression,
   virtualTryOn,
-  generateCharacter,
   generateVideoFromImage,
-  generateVideoFromImageHailuo, // Added Hailuo-02 import
+  generateVideoFromImageHailuo,
+  generateCharacterWithIdeogram, // Replace editImageWithStableDiffusion with generateCharacterWithIdeogram
+  generateFashionPhotoshoot, // Added fashion photoshoot import
+  generateImageWithIdeogramV2, // Added Ideogram V2 import
 } from "@/lib/fal-client"
 
 export async function POST(request: NextRequest) {
@@ -69,13 +71,44 @@ export async function POST(request: NextRequest) {
 
     switch (tool.fal_model_id) {
       case "fal-ai/imagen4/preview":
-      case "fal-ai/stable-diffusion-xl-lightning": // Added support for the actual model ID in database
-        result = await generateImage(
+      case "fal-ai/stable-diffusion-xl-lightning": // Handle both text-to-image and image editing
+        if (tool.tool_id === "nextstep-image-editor") {
+          result = await generateCharacterWithIdeogram(
+            parameters.prompt,
+            parameters.referenceImageUrls,
+            parameters.renderingSpeed,
+            parameters.style,
+            parameters.numImages,
+          )
+        } else {
+          // Text-to-image generation
+          result = await generateImage(
+            parameters.prompt,
+            parameters.aspectRatio,
+            parameters.numImages,
+            parameters.seed,
+            parameters.outputFormat,
+          )
+        }
+        break
+      case "fal-ai/ideogram/v2": // Added Ideogram V2 case for text-to-image generation
+        result = await generateImageWithIdeogramV2(
           parameters.prompt,
           parameters.aspectRatio,
-          parameters.numImages,
+          parameters.style,
+          parameters.expandPrompt,
+          parameters.negativePrompt,
           parameters.seed,
-          parameters.outputFormat,
+          parameters.numImages,
+        )
+        break
+      case "fal-ai/ideogram/character":
+        result = await generateCharacterWithIdeogram(
+          parameters.prompt,
+          parameters.referenceImageUrls,
+          parameters.renderingSpeed,
+          parameters.style,
+          parameters.numImages,
         )
         break
       case "fal-ai/birefnet":
@@ -98,9 +131,6 @@ export async function POST(request: NextRequest) {
       case "fal-ai/fashn/tryon/v1.5":
         result = await virtualTryOn(parameters.personImageUrl, parameters.garmentImageUrl, parameters.garmentType)
         break
-      case "fal-ai/ideogram/character":
-        result = await generateCharacter(parameters.prompt, parameters.referenceImageUrls, parameters.quality)
-        break
       case "fal-ai/kling-video/v1.6/pro/image-to-video":
         result = await generateVideoFromImage(
           parameters.imageUrl,
@@ -118,6 +148,15 @@ export async function POST(request: NextRequest) {
           parameters.duration,
           parameters.resolution,
           parameters.promptOptimizer,
+        )
+        break
+      case "easel-ai/fashion-photoshoot":
+        result = await generateFashionPhotoshoot(
+          parameters.garmentImageUrl,
+          parameters.faceImageUrl,
+          parameters.modelGender,
+          parameters.bodySize,
+          parameters.location,
         )
         break
       default:

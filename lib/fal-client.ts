@@ -94,19 +94,47 @@ export async function removeBackground(imageUrl: string) {
 // Image upscaling
 export async function upscaleImage(imageUrl: string) {
   try {
+    console.log("[v0] Image upscaler input:", { imageUrl })
+
     const result = (await fal.subscribe("fal-ai/clarity-upscaler", {
       input: {
         image_url: imageUrl,
       },
-    })) as FalResponse
+    })) as any
+
+    console.log("[v0] Image upscaler result:", result)
+
+    let outputImageUrl: string | undefined
+
+    // Try different possible response structures
+    if (result.images?.[0]?.url) {
+      outputImageUrl = result.images[0].url
+    } else if (result.image?.url) {
+      outputImageUrl = result.image.url
+    } else if (result.image) {
+      outputImageUrl = result.image
+    } else if (result.url) {
+      outputImageUrl = result.url
+    } else if (result.output?.url) {
+      outputImageUrl = result.output.url
+    } else if (result.output) {
+      outputImageUrl = result.output
+    }
+
+    console.log("[v0] Extracted image URL:", outputImageUrl)
+
+    if (!outputImageUrl) {
+      console.error("[v0] No image URL found in result:", result)
+      throw new Error("No processed image returned from the API")
+    }
 
     return {
       success: true,
       data: result,
-      imageUrl: result.images?.[0]?.url,
+      imageUrl: outputImageUrl,
     }
   } catch (error) {
-    console.error("Error upscaling image:", error)
+    console.error("[v0] Error upscaling image:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to upscale image",
@@ -512,6 +540,252 @@ export async function generateVideoFromImageHailuo(
 
     console.error("Final error message:", errorMessage)
     console.error("=== End Hailuo-02 Error ===")
+
+    return {
+      success: false,
+      error: errorMessage,
+    }
+  }
+}
+
+// Ideogram character generation
+export async function generateCharacterWithIdeogram(
+  prompt: string,
+  referenceImageUrls: string[],
+  renderingSpeed = "BALANCED",
+  style = "AUTO",
+  numImages = 1,
+) {
+  try {
+    console.log("[v0] Ideogram character generation input:", {
+      prompt,
+      referenceImageUrls,
+      renderingSpeed,
+      style,
+      numImages,
+    })
+
+    if (!prompt || !referenceImageUrls || referenceImageUrls.length === 0) {
+      throw new Error("Prompt and at least one reference image are required")
+    }
+
+    if (!process.env.FAL_KEY || process.env.FAL_KEY === "fal_placeholder_key_replace_with_real_key") {
+      throw new Error("FAL_KEY not properly configured")
+    }
+
+    console.log("[v0] Starting FAL API call to fal-ai/ideogram/character...")
+
+    const startTime = Date.now()
+
+    const result = (await fal.subscribe("fal-ai/ideogram/character", {
+      input: {
+        prompt: prompt.trim(),
+        reference_image_urls: referenceImageUrls,
+        rendering_speed: renderingSpeed, // TURBO, BALANCED, QUALITY
+        style: style, // AUTO, REALISTIC, FICTION
+        expand_prompt: true,
+        num_images: numImages,
+        seed: Math.floor(Math.random() * 1000000),
+      },
+    })) as FalResponse
+
+    const duration = Date.now() - startTime
+    console.log("[v0] Ideogram character generation result after", duration, "ms:", result)
+
+    if (!result.images || !result.images[0]?.url) {
+      console.error("[v0] No image URL found in result:", result)
+      throw new Error("No processed image returned from the API")
+    }
+
+    return {
+      success: true,
+      data: result,
+      imageUrl: result.images[0].url,
+    }
+  } catch (error) {
+    console.error("[v0] Error generating character with Ideogram:", error)
+
+    let errorMessage = "Failed to generate character"
+    if (error instanceof Error) {
+      errorMessage = error.message
+      console.error("[v0] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    } else {
+      console.error("[v0] Non-Error object caught:", error)
+      errorMessage = String(error)
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    }
+  }
+}
+
+// Fashion photoshoot generation
+export async function generateFashionPhotoshoot(
+  garmentImageUrl: string,
+  faceImageUrl: string,
+  modelGender: string,
+  bodySize: string,
+  location: string,
+) {
+  try {
+    console.log("[v0] Fashion photoshoot input:", {
+      garmentImageUrl,
+      faceImageUrl,
+      modelGender,
+      bodySize,
+      location,
+    })
+
+    if (!garmentImageUrl || !faceImageUrl) {
+      throw new Error("Both garment image and face image URLs are required for fashion photoshoot")
+    }
+
+    if (!process.env.FAL_KEY || process.env.FAL_KEY === "fal_placeholder_key_replace_with_real_key") {
+      throw new Error("FAL_KEY not properly configured")
+    }
+
+    console.log("[v0] Starting FAL API call to easel-ai/fashion-photoshoot...")
+
+    const startTime = Date.now()
+
+    const result = (await fal.subscribe("easel-ai/fashion-photoshoot", {
+      input: {
+        garment_image: garmentImageUrl, // Correct parameter name from API docs
+        face_image: faceImageUrl, // Correct parameter name from API docs
+        gender: modelGender.toLowerCase(), // Correct parameter name: 'gender' not 'model_gender'
+        body_size: bodySize.toUpperCase(), // XS, S, M, L, XL
+        location: location.toLowerCase(), // park, city
+      },
+    })) as any
+
+    const duration = Date.now() - startTime
+    console.log("[v0] Fashion photoshoot result after", duration, "ms:", result)
+
+    let outputImageUrl: string | undefined
+
+    if (result.image?.url) {
+      outputImageUrl = result.image.url
+    } else if (result.image) {
+      outputImageUrl = result.image
+    } else if (result.images?.[0]?.url) {
+      // Fallback to images array if needed
+      outputImageUrl = result.images[0].url
+    } else if (result.url) {
+      outputImageUrl = result.url
+    }
+
+    if (!outputImageUrl) {
+      console.error("[v0] No image URL found in result:", result)
+      throw new Error("No processed image returned from the API")
+    }
+
+    return {
+      success: true,
+      data: result,
+      imageUrl: outputImageUrl,
+    }
+  } catch (error) {
+    console.error("[v0] Error generating fashion photoshoot:", error)
+
+    let errorMessage = "Failed to generate fashion photoshoot"
+    if (error instanceof Error) {
+      errorMessage = error.message
+      console.error("[v0] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    } else {
+      console.error("[v0] Non-Error object caught:", error)
+      errorMessage = String(error)
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+    }
+  }
+}
+
+// Ideogram V2 text-to-image generation function
+export async function generateImageWithIdeogramV2(
+  prompt: string,
+  aspectRatio = "1:1",
+  style = "auto",
+  expandPrompt = true,
+  negativePrompt = "",
+  seed?: number,
+  numImages = 1,
+) {
+  try {
+    console.log("[v0] Ideogram V2 generation input:", {
+      prompt,
+      aspectRatio,
+      style,
+      expandPrompt,
+      negativePrompt,
+      seed,
+      numImages,
+    })
+
+    if (!prompt) {
+      throw new Error("Prompt is required for Ideogram V2 generation")
+    }
+
+    if (!process.env.FAL_KEY || process.env.FAL_KEY === "fal_placeholder_key_replace_with_real_key") {
+      throw new Error("FAL_KEY not properly configured")
+    }
+
+    console.log("[v0] Starting FAL API call to fal-ai/ideogram/v2...")
+
+    const startTime = Date.now()
+
+    const result = (await fal.subscribe("fal-ai/ideogram/v2", {
+      input: {
+        prompt: prompt.trim(),
+        aspect_ratio: aspectRatio, // 1:1, 16:9, 9:16, 4:3, 3:4, etc.
+        style: style, // auto, general, realistic, design, render_3D, anime
+        expand_prompt: expandPrompt,
+        negative_prompt: negativePrompt,
+        ...(seed && { seed }),
+        sync_mode: false,
+      },
+    })) as FalResponse
+
+    const duration = Date.now() - startTime
+    console.log("[v0] Ideogram V2 generation result after", duration, "ms:", result)
+
+    if (!result.images || !result.images[0]?.url) {
+      console.error("[v0] No image URL found in result:", result)
+      throw new Error("No processed image returned from the API")
+    }
+
+    return {
+      success: true,
+      data: result,
+      imageUrl: result.images[0].url,
+    }
+  } catch (error) {
+    console.error("[v0] Error generating image with Ideogram V2:", error)
+
+    let errorMessage = "Failed to generate image with Ideogram V2"
+    if (error instanceof Error) {
+      errorMessage = error.message
+      console.error("[v0] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      })
+    } else {
+      console.error("[v0] Non-Error object caught:", error)
+      errorMessage = String(error)
+    }
 
     return {
       success: false,

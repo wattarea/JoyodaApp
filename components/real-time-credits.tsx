@@ -21,6 +21,7 @@ export function RealTimeCredits({
   const [credits, setCredits] = useState(initialCredits)
   const isMountedRef = useRef(true)
   const onCreditsChangeRef = useRef(onCreditsChange)
+  const lastFetchTimeRef = useRef(0)
 
   useEffect(() => {
     onCreditsChangeRef.current = onCreditsChange
@@ -31,6 +32,12 @@ export function RealTimeCredits({
 
     const fetchCredits = async (retryCount = 0) => {
       if (!isMountedRef.current) return
+
+      const now = Date.now()
+      if (now - lastFetchTimeRef.current < 5000) {
+        return
+      }
+      lastFetchTimeRef.current = now
 
       try {
         console.log("[v0] Fetching credits, attempt:", retryCount + 1)
@@ -89,13 +96,13 @@ export function RealTimeCredits({
       if (isMountedRef.current) {
         fetchCredits()
       }
-    }, 30000)
+    }, 60000)
 
     return () => {
       isMountedRef.current = false
       clearInterval(interval)
     }
-  }, [userEmail, initialCredits]) // Removed onCreditsChange from dependencies to prevent infinite loops
+  }, [userEmail, initialCredits])
 
   return (
     <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
