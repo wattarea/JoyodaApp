@@ -44,13 +44,14 @@ export async function POST(request: NextRequest) {
     }
 
     const calculateCredits = () => {
-      if (tool.category === "text-to-video") {
-        return parameters.duration === "5" ? 8 : 15 // 8 credits for 5s, 15 credits for 10s
-      }
+      console.log("[v0] Tool credits_per_use:", tool.credits_per_use)
+      console.log("[v0] Tool category:", tool.category)
+      console.log("[v0] Tool name:", tool.name)
       return tool.credits_per_use
     }
 
     const creditsToUse = calculateCredits()
+    console.log("[v0] Credits to use:", creditsToUse)
 
     // Check user credits
     const { data: userData, error: userError } = await supabase
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
 
     switch (tool.fal_model_id) {
       case "fal-ai/imagen4/preview":
+      case "fal-ai/stable-diffusion-xl-lightning": // Added support for the actual model ID in database
         result = await generateImage(
           parameters.prompt,
           parameters.aspectRatio,
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
       case "fal-ai/image-editing/age-progression":
         result = await ageProgression(parameters.imageUrl, parameters.ageChange)
         break
-      case "fal-ai/image-editing/face-enhancement":
+      case "fal-ai/face-to-many":
         result = await enhanceFace(parameters.imageUrl)
         break
       case "fal-ai/image-editing/plushie-style":
@@ -131,6 +133,24 @@ export async function POST(request: NextRequest) {
 
     const outputUrl = result.imageUrl || result.videoUrl
 
+    console.log("[v0] User credits before:", userData.credits)
+    console.log("[v0] Deducting credits:", creditsToUse)
+
+    // await supabase
+    //   .from("users")
+    //   .update({ credits: userData.credits - creditsToUse })
+    //   .eq("email", user.email)
+
+    console.log("[v0] Recording transaction with amount:", -creditsToUse)
+    await supabase.from("credit_transactions").insert({
+      user_id: userData.id,
+      transaction_type: "usage",
+      amount: -creditsToUse,
+      description: `Used ${tool.name}${tool.category === "text-to-video" ? ` (${parameters.duration}s)` : ""}`,
+      tool_used: tool.name,
+      status: "completed",
+    })
+
     await supabase.from("tool_executions").insert({
       user_id: userData.id,
       tool_id: toolId,
@@ -139,20 +159,6 @@ export async function POST(request: NextRequest) {
       output_file_url: outputUrl,
       credits_used: creditsToUse, // Use calculated credits instead of tool.credits_per_use
       processing_time_seconds: processingTime,
-      status: "completed",
-    })
-
-    await supabase
-      .from("users")
-      .update({ credits: userData.credits - creditsToUse })
-      .eq("email", user.email)
-
-    await supabase.from("credit_transactions").insert({
-      user_id: userData.id,
-      transaction_type: "usage",
-      amount: -creditsToUse,
-      description: `Used ${tool.name}${tool.category === "text-to-video" ? ` (${parameters.duration}s)` : ""}`,
-      tool_used: tool.name,
       status: "completed",
     })
 

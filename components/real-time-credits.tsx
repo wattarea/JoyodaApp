@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { CreditCard } from "lucide-react"
 
 interface RealTimeCreditsProps {
@@ -19,9 +19,19 @@ export function RealTimeCredits({
   onCreditsChange,
 }: RealTimeCreditsProps) {
   const [credits, setCredits] = useState(initialCredits)
+  const isMountedRef = useRef(true)
+  const onCreditsChangeRef = useRef(onCreditsChange)
 
   useEffect(() => {
+    onCreditsChangeRef.current = onCreditsChange
+  }, [onCreditsChange])
+
+  useEffect(() => {
+    isMountedRef.current = true
+
     const fetchCredits = async (retryCount = 0) => {
+      if (!isMountedRef.current) return
+
       try {
         console.log("[v0] Fetching credits, attempt:", retryCount + 1)
 
@@ -46,32 +56,46 @@ export function RealTimeCredits({
         const data = await response.json()
         console.log("[v0] Credits fetched successfully:", data.credits)
 
-        if (typeof data.credits === "number") {
+        if (isMountedRef.current && typeof data.credits === "number") {
           setCredits(data.credits)
-          onCreditsChange?.(data.credits)
+          onCreditsChangeRef.current?.(data.credits)
         }
       } catch (error) {
         console.error("[v0] Error fetching credits:", error)
 
         if (retryCount < 2 && (error instanceof TypeError || error.name === "AbortError")) {
           console.log("[v0] Retrying credits fetch due to browser extension interference")
-          setTimeout(() => fetchCredits(retryCount + 1), 1000 * (retryCount + 1))
+          setTimeout(
+            () => {
+              if (isMountedRef.current) {
+                fetchCredits(retryCount + 1)
+              }
+            },
+            1000 * (retryCount + 1),
+          )
           return
         }
 
         console.log("[v0] Using initial credits as fallback:", initialCredits)
-        setCredits(initialCredits)
+        if (isMountedRef.current) {
+          setCredits(initialCredits)
+        }
       }
     }
 
     fetchCredits()
 
-    const interval = setInterval(() => fetchCredits(), 5000)
+    const interval = setInterval(() => {
+      if (isMountedRef.current) {
+        fetchCredits()
+      }
+    }, 30000)
 
     return () => {
+      isMountedRef.current = false
       clearInterval(interval)
     }
-  }, [userEmail, onCreditsChange, initialCredits])
+  }, [userEmail, initialCredits]) // Removed onCreditsChange from dependencies to prevent infinite loops
 
   return (
     <div className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">

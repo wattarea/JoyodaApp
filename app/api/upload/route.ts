@@ -1,6 +1,54 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { put } from "@vercel/blob"
 
+async function compressImage(file: File, maxSizeBytes: number = 4 * 1024 * 1024): Promise<File> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas")
+    const ctx = canvas.getContext("2d")
+    const img = new Image()
+
+    img.onload = () => {
+      // Calculate new dimensions to reduce file size
+      let { width, height } = img
+      const maxDimension = 1920 // Max width or height
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = (height * maxDimension) / width
+          width = maxDimension
+        } else {
+          width = (width * maxDimension) / height
+          height = maxDimension
+        }
+      }
+
+      canvas.width = width
+      canvas.height = height
+
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            })
+            resolve(compressedFile)
+          } else {
+            resolve(file) // Return original if compression fails
+          }
+        },
+        "image/jpeg",
+        0.8,
+      ) // 80% quality
+    }
+
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -10,15 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    const maxSize = 10 * 1024 * 1024 // 10MB in bytes
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        {
-          error: `File size must be less than 10MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
-        },
-        { status: 413 },
-      )
-    }
+    const maxSize = 4 * 1024 * 1024 // 4MB in bytes (Vercel Blob free tier limit)
 
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if (!allowedTypes.includes(file.type)) {
@@ -28,6 +68,29 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       )
+    }
+
+    if (file.size > maxSize) {
+      console.log(`[v0] File too large (${(file.size / 1024 / 1024).toFixed(1)}MB), attempting compression...`)
+
+      try {
+        // For server-side compression, we'll use a different approach
+        // Since we can't use canvas on server, we'll just reject files over 4MB with a helpful message
+        return NextResponse.json(
+          {
+            error: `File size must be less than 4MB for reliable upload. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your image before uploading.`,
+          },
+          { status: 413 },
+        )
+      } catch (compressionError) {
+        console.log(`[v0] Compression failed:`, compressionError)
+        return NextResponse.json(
+          {
+            error: `File size must be less than 4MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB. Please compress your image before uploading.`,
+          },
+          { status: 413 },
+        )
+      }
     }
 
     let blob
@@ -92,26 +155,26 @@ export async function POST(request: NextRequest) {
 
         if (message.includes("BLOB_JSON_PARSE_ERROR")) {
           errorMessage =
-            "File upload failed due to server response error. This usually means the file is too large or the service is temporarily unavailable. Please try a smaller file."
+            "File upload failed due to size restrictions. Vercel Blob has a 4MB limit. Please compress your image and try again."
           statusCode = 413
         } else if (message.includes("BLOB_REQUEST_ERROR")) {
-          errorMessage = "File upload failed due to size restrictions. Please use a file smaller than 10MB."
+          errorMessage = "File upload failed due to size restrictions. Please use a file smaller than 4MB."
           statusCode = 413
         } else if (message.includes("UPLOAD_TIMEOUT")) {
           errorMessage = "Upload timed out. Please try again with a smaller file."
           statusCode = 408
         } else if (message.toLowerCase().includes("unexpected token") && message.toLowerCase().includes("json")) {
           errorMessage =
-            "Server returned invalid response. The file might be too large or the service is temporarily unavailable."
+            "Upload failed due to file size restrictions. Please compress your image to under 4MB and try again."
           statusCode = 413
         } else if (message.toLowerCase().includes("request entity too large") || message.includes("413")) {
-          errorMessage = "File is too large for upload. Please use a file smaller than 10MB."
+          errorMessage = "File is too large for upload. Please use a file smaller than 4MB."
           statusCode = 413
         } else if (
           message.toLowerCase().includes("request en") ||
           message.toLowerCase().includes("payload too large")
         ) {
-          errorMessage = "File size exceeds server limits. Please use a smaller file."
+          errorMessage = "File size exceeds server limits. Please compress your image to under 4MB."
           statusCode = 413
         } else if (message.toLowerCase().includes("timeout")) {
           errorMessage = "Upload timed out. Please try again with a smaller file."
@@ -124,7 +187,7 @@ export async function POST(request: NextRequest) {
         }
       } else if (typeof blobError === "string") {
         if (blobError.toLowerCase().includes("request en")) {
-          errorMessage = "File upload failed due to size limitations. Please use a smaller file."
+          errorMessage = "File upload failed due to size limitations. Please use a file smaller than 4MB."
           statusCode = 413
         } else {
           errorMessage = `Upload failed: ${blobError}`

@@ -132,9 +132,6 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
   }
 
   const getVideoDurationCredits = () => {
-    if (tool.category === "text-to-video") {
-      return videoDuration === "5" ? 8 : 15 // 8 credits for 5s, 15 credits for 10s
-    }
     return tool.credits_per_use
   }
 
@@ -146,7 +143,7 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
       return
     }
 
-    if (tool.category === "text-to-image" && !prompt.trim()) {
+    if ((tool.category === "text-to-image" || tool.tool_id === "text-to-image") && !prompt.trim()) {
       setError("Please enter a prompt for image generation.")
       return
     }
@@ -187,7 +184,8 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
 
     if (
       tool.category !== "text-to-image" &&
-      tool.category !== "text-to-video" && // Added text-to-video exception
+      tool.tool_id !== "text-to-image" && // Added tool_id check for text-to-image
+      tool.category !== "text-to-video" &&
       tool.category !== "fashion" &&
       tool.category !== "creative" &&
       tool.category !== "image-to-video" &&
@@ -302,7 +300,7 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
     }
   }
 
-  const isTextToImage = tool.category === "text-to-image"
+  const isTextToImage = tool.category === "text-to-image" || tool.tool_id === "text-to-image" // Added tool_id check for text-to-image detection
   const isTextToVideo = tool.category === "text-to-video" // Added text-to-video check
   const isImageToVideo = tool.category === "image-to-video"
   const isVirtualTryOn = tool.category === "fashion"
@@ -399,7 +397,7 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500">
-                    {videoDuration === "5" ? "8 credits" : "15 credits"} for {videoDuration} seconds
+                    {tool.credits_per_use} credits for {videoDuration} seconds
                   </p>
                 </div>
 
@@ -454,7 +452,7 @@ export function ToolExecutionForm({ tool, userCredits }: ToolExecutionFormProps)
                     <span>Strict</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-1">
                   Lower values allow more creative interpretation, higher values follow the prompt more strictly
                 </p>
               </div>

@@ -1,7 +1,19 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Users, ImageIcon, Clock, CheckCircle, Scissors, Sparkles, Video, Palette } from "lucide-react"
+import {
+  Star,
+  Users,
+  ImageIcon,
+  Clock,
+  CheckCircle,
+  Scissors,
+  Sparkles,
+  Video,
+  Palette,
+  Heart,
+  Play,
+} from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 
@@ -37,6 +49,11 @@ export default async function LandingPage() {
     "age-progression": Clock,
     "text-to-video-kling": Video,
     "text-to-video-hailuo": Video,
+    "Image Editing": ImageIcon,
+    Enhancement: ImageIcon,
+    Creative: Palette,
+    Generation: ImageIcon,
+    Fashion: Users,
   }
 
   const fallbackTools = [
@@ -47,6 +64,9 @@ export default async function LandingPage() {
       description: "Remove backgrounds from images instantly",
       credits_per_use: 1,
       category: "Image Editing",
+      image_url: "/background-remover.png",
+      rating: 4.8,
+      usage_count: 1200,
     },
     {
       id: 2,
@@ -55,6 +75,9 @@ export default async function LandingPage() {
       description: "Enhance facial features with AI",
       credits_per_use: 2,
       category: "Enhancement",
+      image_url: "/face-enhancer.png",
+      rating: 4.7,
+      usage_count: 900,
     },
     {
       id: 3,
@@ -63,6 +86,9 @@ export default async function LandingPage() {
       description: "Upscale images without quality loss",
       credits_per_use: 2,
       category: "Enhancement",
+      image_url: "/image-upscaler.png",
+      rating: 4.9,
+      usage_count: 1500,
     },
     {
       id: 4,
@@ -71,6 +97,9 @@ export default async function LandingPage() {
       description: "Apply artistic styles to your images",
       credits_per_use: 3,
       category: "Creative",
+      image_url: "/style-transfer.png",
+      rating: 4.6,
+      usage_count: 800,
     },
     {
       id: 5,
@@ -79,6 +108,9 @@ export default async function LandingPage() {
       description: "Generate images from text descriptions",
       credits_per_use: 4,
       category: "Generation",
+      image_url: "/text-to-image.png",
+      rating: 4.5,
+      usage_count: 1100,
     },
     {
       id: 6,
@@ -87,6 +119,9 @@ export default async function LandingPage() {
       description: "Swap faces between images",
       credits_per_use: 3,
       category: "Creative",
+      image_url: "/face-swap.png",
+      rating: 4.4,
+      usage_count: 700,
     },
     {
       id: 7,
@@ -95,6 +130,9 @@ export default async function LandingPage() {
       description: "Try on clothes virtually",
       credits_per_use: 3,
       category: "Fashion",
+      image_url: "/virtual-try-on.png",
+      rating: 4.3,
+      usage_count: 600,
     },
     {
       id: 8,
@@ -103,6 +141,9 @@ export default async function LandingPage() {
       description: "See how you'll look in the future",
       credits_per_use: 2,
       category: "Creative",
+      image_url: "/age-progression.png",
+      rating: 4.2,
+      usage_count: 500,
     },
   ]
 
@@ -220,20 +261,82 @@ export default async function LandingPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {displayTools.slice(0, 8).map((tool) => {
-              const IconComponent = iconMap[tool.tool_id] || ImageIcon
+              const IconComponent = iconMap[tool.tool_id] || iconMap[tool.category] || ImageIcon
               return (
                 <Link key={tool.id} href={`/tools/${tool.tool_id}`}>
-                  <Card className="p-6 hover:shadow-lg transition-shadow border-purple-100 cursor-pointer">
-                    <CardContent className="p-0">
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                        <IconComponent className="w-6 h-6 text-purple-600" />
+                  <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-full">
+                    {/* Hero Visual Area */}
+                    <div className="relative h-32 bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 overflow-hidden">
+                      <div className="absolute inset-0 opacity-20">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse"></div>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
                       </div>
-                      <h3 className="font-semibold mb-2">{tool.name}</h3>
-                      <p className="text-gray-600 text-sm mb-3">{tool.description}</p>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-purple-600 font-medium">{tool.credits_per_use} credits</span>
-                        <span className="text-gray-500">{tool.category}</span>
+
+                      <div className="absolute inset-0">
+                        {tool.image_url ? (
+                          <img
+                            src={tool.image_url || "/placeholder.svg"}
+                            alt={tool.name}
+                            className="w-full h-full object-cover absolute inset-0"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                              target.nextElementSibling?.classList.remove("hidden")
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`${tool.image_url ? "hidden" : ""} w-full h-full flex items-center justify-center absolute inset-0`}
+                        >
+                          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <IconComponent className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Category Badge */}
+                      <Badge
+                        variant="secondary"
+                        className="absolute top-2 left-2 bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs z-10"
+                      >
+                        {tool.category?.replace("-", " ") || "AI Tool"}
+                      </Badge>
+
+                      {/* Bottom Stats */}
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-xs z-10">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            <span>{tool.rating || "4.5"}</span>
+                          </div>
+                          <span className="opacity-70">•</span>
+                          <span className="opacity-90">{tool.usage_count || 0} uses</span>
+                        </div>
+                        <div className="bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                          <span className="font-semibold">{tool.credits_per_use}</span>
+                        </div>
+                      </div>
+
+                      {/* Hover Play Button */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                        <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center">
+                          <Play className="w-6 h-6 text-white ml-1" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content Area */}
+                    <CardContent className="p-3 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors text-sm">
+                          {tool.name}
+                        </h3>
+                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 -mt-1 p-1">
+                          <Heart className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <p className="text-gray-600 text-xs leading-tight line-clamp-2 flex-1">{tool.description}</p>
                     </CardContent>
                   </Card>
                 </Link>
