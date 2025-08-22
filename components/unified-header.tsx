@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { RealTimeCredits } from "@/components/real-time-credits"
 import { TurkishSignOutButton } from "@/components/turkish-sign-out-button"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 interface UnifiedHeaderProps {
@@ -16,18 +16,53 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
+  const supabase = supabaseRef.current
+
+  const lastFetchRef = useRef<number>(0)
+  const FETCH_COOLDOWN = 5000 // 5 seconds
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const fetchUserData = useCallback(
+    async (userEmail: string) => {
+      const now = Date.now()
+      if (now - lastFetchRef.current < FETCH_COOLDOWN) {
+        return // Skip if called too recently
+      }
+      lastFetchRef.current = now
+
+      try {
+        console.log("[v0] UnifiedHeader: Fetching user credits for:", userEmail)
+        const { data: userInfo, error: userError } = await supabase
+          .from("users")
+          .select("credits")
+          .eq("email", userEmail)
+          .single()
+
+        if (userError) {
+          console.error("[v0] UnifiedHeader: User data error:", userError)
+          setUserData({ credits: 5 })
+        } else {
+          console.log("[v0] UnifiedHeader: User data fetched:", userInfo)
+          setUserData(userInfo)
+        }
+      } catch (error) {
+        console.error("[v0] UnifiedHeader: Error fetching user data:", error)
+        setUserData({ credits: 5 })
+      }
+    },
+    [supabase],
+  )
 
   useEffect(() => {
     if (!mounted) return
 
     async function getUser() {
       try {
-        console.log("[v0] UnifiedHeader: Fetching user data")
+        console.log("[v0] UnifiedHeader: Initial user fetch")
         const {
           data: { user: authUser },
           error: authError,
@@ -47,20 +82,7 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
         setUser(authUser)
 
         if (authUser?.email) {
-          console.log("[v0] UnifiedHeader: Fetching user credits for:", authUser.email)
-          const { data: userInfo, error: userError } = await supabase
-            .from("users")
-            .select("credits")
-            .eq("email", authUser.email)
-            .single()
-
-          if (userError) {
-            console.error("[v0] UnifiedHeader: User data error:", userError)
-            setUserData({ credits: 5 })
-          } else {
-            console.log("[v0] UnifiedHeader: User data fetched:", userInfo)
-            setUserData(userInfo)
-          }
+          await fetchUserData(authUser.email)
         }
       } catch (error) {
         console.error("[v0] UnifiedHeader: Unexpected error:", error)
@@ -80,28 +102,17 @@ export function UnifiedHeader({ currentPage = "" }: UnifiedHeaderProps) {
       if (event === "SIGNED_OUT") {
         setUser(null)
         setUserData(null)
-      } else if (session?.user) {
+        lastFetchRef.current = 0 // Reset cooldown on signout
+      } else if (event === "SIGNED_IN" && session?.user) {
         setUser(session.user)
         if (session.user.email) {
-          supabase
-            .from("users")
-            .select("credits")
-            .eq("email", session.user.email)
-            .single()
-            .then(({ data, error }) => {
-              if (error) {
-                console.error("[v0] UnifiedHeader: Error refetching user data:", error)
-                setUserData({ credits: 5 })
-              } else {
-                setUserData(data)
-              }
-            })
+          fetchUserData(session.user.email)
         }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, mounted])
+  }, [mounted, fetchUserData]) // Remove supabase from dependencies to prevent infinite loop
 
   if (!mounted || loading) {
     return (
