@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
         professional: { name: "Professional Pack", credits: 200, price: 29 },
         business: { name: "Business Pack", credits: 500, price: 69 },
         enterprise: { name: "Enterprise Pack", credits: 1000, price: 129 },
+        premium: { name: "Premium Pack", credits: 2500, price: 299 },
+        ultimate: { name: "Ultimate Pack", credits: 5000, price: 549 },
+        mega: { name: "Mega Pack", credits: 10000, price: 999 },
       }
 
       const pkg = creditPackages[packageId as keyof typeof creditPackages]
