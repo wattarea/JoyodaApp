@@ -160,6 +160,33 @@ export default function PricingPage() {
       savings: "36% off",
       popular: false,
     },
+    {
+      id: "premium",
+      name: "Premium Pack",
+      credits: 2500,
+      price: 299,
+      originalPrice: 450,
+      savings: "34% off",
+      popular: false,
+    },
+    {
+      id: "ultimate",
+      name: "Ultimate Pack",
+      credits: 5000,
+      price: 549,
+      originalPrice: 800,
+      savings: "31% off",
+      popular: false,
+    },
+    {
+      id: "mega",
+      name: "Mega Pack",
+      credits: 10000,
+      price: 999,
+      originalPrice: 1500,
+      savings: "33% off",
+      popular: false,
+    },
   ]
 
   const handleSubscriptionPurchase = async (planId: string, isYearly: boolean) => {
